@@ -175,6 +175,19 @@ describe('request validation maps to 400 VALIDATION_ERROR', () => {
     expect(res.json().error.code).toBe('VALIDATION_ERROR');
   });
 
+  // End-to-end guarantee: whatever the framework does, a malformed body is never quoted back.
+  // (Fastify 5 does not quote it today, so this guards against a future version changing that.)
+  it('does not quote a malformed body back to the caller', async () => {
+    const secret = 'SECRET-VIN-1HGCM82633A004352';
+    const res = await buildApp().inject({
+      ...validEcho,
+      headers: { ...validEcho.headers, 'content-type': 'application/json' },
+      payload: `{"vehicleId": "${secret}", oops`,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).not.toContain(secret);
+  });
+
   it('turns other client errors (such as a wrong content type) into 400 VALIDATION_ERROR', async () => {
     const res = await buildApp().inject({
       ...validEcho,

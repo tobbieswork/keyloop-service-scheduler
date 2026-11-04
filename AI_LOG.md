@@ -97,3 +97,12 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Problem / gap:** the seed's command-line entry point was only trusted after running `npm run migrate` and `npm run seed` for real against the compose database. Break-the-logic: closing the range (touching counts as overlap), ignoring DST, and choosing the later of two ambiguous times each failed 2, 10 and 1 tests. A fourth break (measuring 15-minute alignment in UTC instead of local time) SURVIVED. Investigation showed it is an equivalent mutant: every real zone offset is a multiple of 15 minutes, so no test can tell the two apart. The test title had overclaimed, so it was retitled honestly rather than bent to fail
 - **My decision:** Accepted all: the `Intl`-based time conversion, earlier moment for a local time that happens twice, forward shift for one that never happens, and the honest retitle of the equivalent-mutant test instead of forcing it to fail
 - **Verified by:** tests seen red first (modules missing), then green; four deliberate breaks, three caught, one analysed as equivalent; seed and migrate commands run for real, including exit code 1 on bad config
+
+### 2026-11-04: Error model (T017)
+
+- **Phase:** implementation
+- **Asked:** implement the single error shape and the code-to-status table (task list had no test task, so the AI wrote tests first anyway under the constitution's test-first rule)
+- **AI produced:** `AppError`, the status table as the single source, and a Fastify error handler; 24 tests including privacy checks (validation errors never echo the submitted value; a 500 never leaks the internal message)
+- **Problem / gap:** the AI had written in a code comment that Node's JSON errors can quote the request body, and added a test for it. A deliberate break (echo the framework message) did NOT fail that test. Probing Fastify 5.12.8 directly showed it does not quote the body at all, so the AI's stated reason was wrong. The generic message was kept as defence in depth, the false comment was corrected, and the test was reworded to state the end-to-end guarantee it actually gives
+- **My decision:** TBD
+- **Verified by:** tests seen red (module missing) then green; five deliberate breaks: leak on 500, echo body in details, swallow errors, wrong status, each caught by the intended test(s); the sixth (echo framework message) survived and was investigated with a direct probe instead of assumed
