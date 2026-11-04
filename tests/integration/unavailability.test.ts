@@ -210,28 +210,32 @@ describe.each(kinds)('listing and removing blocks of a %s', (kind) => {
 
   it("lists the resource's blocks, earliest first, with every field", async () => {
     const world = await createWorld(testDb.db, { withHours: true });
-    const late = await make(world, 0, '14:00', '15:00', 'SAMPLE late');
-    const early = await make(world, 0, '09:00', '10:00', 'SAMPLE early');
+    const id0 = resourceId(world, kind, 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    // Six blocks created latest-first. Block IDs are random, so only a real sort by start time
+    // (not insertion order, and not ID order) returns them 08:00, 09:00, ... 13:00. With six, a
+    // wrong order would pass by accident about once in 720 runs, not once in 2.
+    const created: Record<number, string> = {};
+    for (const hour of [13, 12, 11, 10, 9, 8]) {
+      created[hour] = (
+        await make(world, 0, `${pad(hour)}:00`, `${pad(hour)}:45`, `SAMPLE ${hour}h`)
+      ).id;
+    }
 
-    const res = await api.listBlocks(kind, resourceId(world, kind, 0));
+    const res = await api.listBlocks(kind, id0);
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual([
-      {
-        id: early.id,
-        resourceId: resourceId(world, kind, 0),
-        startTime: '2030-03-04T09:00:00.000Z',
-        endTime: '2030-03-04T10:00:00.000Z',
-        reason: 'SAMPLE early',
-      },
-      {
-        id: late.id,
-        resourceId: resourceId(world, kind, 0),
-        startTime: '2030-03-04T14:00:00.000Z',
-        endTime: '2030-03-04T15:00:00.000Z',
-        reason: 'SAMPLE late',
-      },
-    ]);
+    const list = res.json() as { id: string; startTime: string }[];
+    expect(list.map((b) => b.startTime)).toEqual(
+      [8, 9, 10, 11, 12, 13].map((h) => `2030-03-04T${pad(h)}:00:00.000Z`),
+    );
+    expect(list[0]).toEqual({
+      id: created[8],
+      resourceId: id0,
+      startTime: '2030-03-04T08:00:00.000Z',
+      endTime: '2030-03-04T08:45:00.000Z',
+      reason: 'SAMPLE 8h',
+    });
   });
 
   it('returns an empty list, not an error, when there are none', async () => {
