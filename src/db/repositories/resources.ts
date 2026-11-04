@@ -56,19 +56,22 @@ export async function freeTechnicians(
 }
 
 /**
- * Take a row lock on the bay for the rest of the transaction, WITHOUT waiting. Returns false
+ * Take a row lock on the bay for the rest of the transaction, WITHOUT waiting. The lock mode is
+ * FOR NO KEY UPDATE, not FOR UPDATE: it still excludes other bookings (which take the same lock)
+ * but, unlike FOR UPDATE, it does not block the foreign-key check that any insert of an
+ * appointment pointing at this bay performs, so no unrelated writer can get stuck behind it. Returns false
  * when another in-flight booking already holds it, so the caller moves on to the next candidate
  * instead of queueing behind it (which also makes deadlocks impossible).
  */
 export async function tryLockBay(db: Db, bayId: string): Promise<boolean> {
   const { rows } = await sql`
-    SELECT id FROM service_bay WHERE id = ${bayId} FOR UPDATE SKIP LOCKED`.execute(db);
+    SELECT id FROM service_bay WHERE id = ${bayId} FOR NO KEY UPDATE SKIP LOCKED`.execute(db);
   return rows.length > 0;
 }
 
 export async function tryLockTechnician(db: Db, technicianId: string): Promise<boolean> {
   const { rows } = await sql`
-    SELECT id FROM technician WHERE id = ${technicianId} FOR UPDATE SKIP LOCKED`.execute(db);
+    SELECT id FROM technician WHERE id = ${technicianId} FOR NO KEY UPDATE SKIP LOCKED`.execute(db);
   return rows.length > 0;
 }
 

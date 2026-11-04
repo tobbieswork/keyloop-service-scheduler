@@ -24,7 +24,9 @@ import {
 import { occupiedPeriod } from '../domain/occupied-period.js';
 import { qualifiedTechnicians, rankByLeastBooked } from '../domain/resource-selection.js';
 import { checkWorkingHours, localDateTime, localDayBounds } from '../domain/working-hours.js';
+import type { TimeRange } from '../domain/time-range.js';
 import type { Metrics } from '../observability/metrics.js';
+import type { AvailabilityService } from './availability.js';
 import { withSpan } from '../observability/tracing.js';
 
 export interface BookingRequest {
@@ -42,10 +44,30 @@ export interface BookingOutcome {
   replayed: boolean;
 }
 
+/**
+ * Test seams. Real code never sets these. They let a test pause a booking at an exact point, so
+ * rare races (another request landing between two steps) can be reproduced on purpose instead
+ * of hoped for.
+ */
+export interface BookingTestHooks {
+  /** Runs inside the transaction right after the idempotency-key check. */
+  afterIdempotencyCheck?: (attempt: number) => Promise<void>;
+  /** Runs inside the transaction after the locks and re-check, just before the insert. */
+  beforeInsert?: (info: {
+    attempt: number;
+    bayId: string;
+    technicianId: string;
+    occupied: TimeRange;
+  }) => Promise<void>;
+}
+
 export interface BookingServiceDeps {
   db: Db;
   metrics: Metrics;
   clock: () => Date;
+  /** Used to offer alternative slots when a request is rejected for lack of capacity. */
+  availability: AvailabilityService;
+  testHooks?: BookingTestHooks;
   /** Wait between attempts. Injectable so tests need not sleep. */
   sleep?: (ms: number) => Promise<void>;
   /** Randomness for the wait between attempts. Injectable for tests. */
@@ -153,19 +175,18 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
     }
 
     // "Least booked that day" is counted on the dealership's local calendar day.
-    const day = localDayBounds(
-      localDateTime(request.startTime, dealership.timeZone).date,
-      dealership.timeZone,
-    );
+    const requestedDate = localDateTime(request.startTime, dealership.timeZone).date;
+    const day = localDayBounds(requestedDate, dealership.timeZone);
 
     /** One transaction: choose, lock, re-check, insert. Rolls back completely on any failure. */
-    const attempt = (): Promise<Attempt> =>
+    const attempt = (attemptNumber: number): Promise<Attempt> =>
       db.transaction().execute(async (trx): Promise<Attempt> => {
         await sql`SET LOCAL statement_timeout = 5000`.execute(trx);
 
         // Another request with this key may have committed while we were waiting or retrying.
         const raced = await findAppointmentByIdempotencyKey(trx, request.idempotencyKey);
         if (raced) return { kind: 'existing', appointment: raced };
+        await deps.testHooks?.afterIdempotencyCheck?.(attemptNumber);
 
         const bays = rankByLeastBooked(await freeBays(trx, dealership.id, occupied, day));
         const technicians = rankByLeastBooked(
@@ -198,6 +219,13 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
         // The lists above were read before the locks, so check again now that we hold them.
         if (!(await stillFree(trx, bayId, technicianId, occupied))) return { kind: 'contended' };
 
+        await deps.testHooks?.beforeInsert?.({
+          attempt: attemptNumber,
+          bayId,
+          technicianId,
+          occupied,
+        });
+
         const appointment = await insertAppointment(trx, {
           customerId: request.customerId,
           vehicleId: request.vehicleId,
@@ -216,7 +244,7 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
     for (let attemptNumber = 1; attemptNumber <= MAX_ATTEMPTS; attemptNumber++) {
       let result: Attempt;
       try {
-        result = await attempt();
+        result = await attempt(attemptNumber);
       } catch (error) {
         if (pgCode(error) === PG_EXCLUSION_VIOLATION) {
           // The database refused an overlap our checks missed. It is the final safety net.
@@ -244,9 +272,34 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
       }
     }
 
+    // About to say "no capacity". First make sure the capacity was not taken by THIS very request:
+    // a copy sent at the same moment may have committed between our key check and our capacity
+    // check, which would make this a replay, not a conflict.
+    const winner = await findAppointmentByIdempotencyKey(db, request.idempotencyKey);
+    if (winner) return replay(winner, hash);
+
+    // Help the caller choose again. Failing to find alternatives must not hide the conflict itself.
+    const alternatives = await deps.availability
+      .alternatives({
+        dealershipId: request.dealershipId,
+        serviceTypeId: request.serviceTypeId,
+        date: requestedDate,
+      })
+      .catch((error: unknown) => {
+        log.warn({ err: error }, 'Could not compute alternative slots');
+        return [];
+      });
     throw new AppError(
       'SLOT_UNAVAILABLE',
       'No service bay and qualified technician are both free for the requested time',
+      {
+        extra: {
+          alternatives: alternatives.map((s) => ({
+            startTime: s.startTime.toISOString(),
+            endTime: s.endTime.toISOString(),
+          })),
+        },
+      },
     );
   }
 

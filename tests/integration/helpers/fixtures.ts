@@ -163,6 +163,8 @@ export interface AppointmentInput {
   end: string;
   key: string;
   status?: 'confirmed' | 'cancelled';
+  /** Stored request hash. Default is a placeholder. */
+  requestHash?: string;
   /** Range bounds. Default '[)' (half-open). Pass '[]' to build an invalid inclusive-upper range. */
   bounds?: '[)' | '[]';
 }
@@ -182,7 +184,7 @@ export function insertAppointment(db: Db, world: World, input: AppointmentInput)
       service_end: new Date(input.end),
       status: input.status ?? 'confirmed',
       idempotency_key: input.key,
-      request_hash: 'sample-hash',
+      request_hash: input.requestHash ?? 'sample-hash',
       cancelled_at: null,
     })
     .returning('id')

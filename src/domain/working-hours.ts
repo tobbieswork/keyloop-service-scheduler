@@ -116,16 +116,17 @@ export function localDateTime(instant: Date, timeZone: string): LocalDateTime {
   };
 }
 
-function nextDate(date: string): string {
+/** The calendar date `days` after `date` ('YYYY-MM-DD'). Pure calendar arithmetic, no time zones. */
+export function addDays(date: string, days: number): string {
   const { year, month, day } = parseDate(date);
-  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }
 
 /** The local day from midnight to the next midnight, as UTC instants (23 to 25 hours on DST days). */
 export function localDayBounds(date: string, timeZone: string): TimeRange {
   return range(
     zonedTimeToInstant(date, '00:00', timeZone),
-    zonedTimeToInstant(nextDate(date), '00:00', timeZone),
+    zonedTimeToInstant(addDays(date, 1), '00:00', timeZone),
   );
 }
 

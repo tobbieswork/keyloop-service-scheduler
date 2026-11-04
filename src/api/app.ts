@@ -91,12 +91,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
 
   const clock = deps.clock ?? (() => new Date());
-  const booking = createBookingService({ db, metrics, clock });
+  const availability = createAvailabilityService({ db, metrics, clock });
+  const booking = createBookingService({ db, metrics, clock, availability });
   registerAppointmentRoutes(app, { db, booking });
-  registerAvailabilityRoutes(app, {
-    db,
-    availability: createAvailabilityService({ db, metrics, clock }),
-  });
+  registerAvailabilityRoutes(app, { db, availability });
 
   return app;
 }
