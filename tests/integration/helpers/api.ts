@@ -14,6 +14,12 @@ export interface TestApi {
   setNow: (now: Date) => void;
   book: (body: Record<string, unknown>, key?: string | null) => Promise<LightMyRequestResponse>;
   getAppointment: (id: string) => Promise<LightMyRequestResponse>;
+  get: (url: string) => Promise<LightMyRequestResponse>;
+  availability: (query: {
+    dealershipId: string;
+    serviceTypeId: string;
+    date: string;
+  }) => Promise<LightMyRequestResponse>;
 }
 
 const config = (databaseUrl: string, logLevel: Config['logLevel']): Config => ({
@@ -53,6 +59,12 @@ export async function startApi(
         payload: body,
       }),
     getAppointment: (id) => app.inject({ method: 'GET', url: `/appointments/${id}` }),
+    get: (url) => app.inject({ method: 'GET', url }),
+    availability: (query) =>
+      app.inject({
+        method: 'GET',
+        url: `/availability?${new URLSearchParams(query).toString()}`,
+      }),
   };
 }
 

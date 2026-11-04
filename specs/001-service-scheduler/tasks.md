@@ -71,9 +71,9 @@
 
 **Purpose**: List only start times where both a bay and a qualified technician are free for the whole period. This logic also powers the alternative slots in 409 responses.
 
-- [ ] T033 [US2] Write failing unit tests `tests/unit/slot-generation.test.ts`: 15-minute grid in local time, only fully bookable starts, boundary at closing time, a day with no capacity returns an empty list
-- [ ] T034 [P] [US2] Write failing integration tests `tests/integration/availability.test.ts`: booked times disappear, empty result is not an error, unknown dealership gives 404
-- [ ] T035 [P] [US2] Write failing contract test `tests/contract/availability.contract.test.ts` for `GET /availability`
+- [x] T033 [US2] Write failing unit tests `tests/unit/slot-generation.test.ts`: 15-minute grid in local time, only fully bookable starts, boundary at closing time, a day with no capacity returns an empty list
+- [x] T034 [P] [US2] Write failing integration tests `tests/integration/availability.test.ts`: booked times disappear, empty result is not an error, unknown dealership gives 404
+- [x] T035 [P] [US2] Write failing contract test `tests/contract/availability.contract.test.ts` for `GET /availability`
 - [ ] T036 [US2] Implement `src/domain/slot-generation.ts` (pure) and `src/services/availability.ts` (fetches intervals, computes slots, with a trace span and a duration metric)
 - [ ] T037 [US2] Implement `GET /availability`, `GET /dealerships` and `GET /service-types` in `src/api/routes/availability.ts` and `reference.ts`
 
