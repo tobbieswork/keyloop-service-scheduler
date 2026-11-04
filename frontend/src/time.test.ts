@@ -52,20 +52,28 @@ describe('formatTime: shows the time in the DEALERSHIP zone, never the browser z
 
 describe('formatDateTime', () => {
   it('shows weekday, day, month and the local time', () => {
-    expect(formatDateTime('2030-03-04T09:00:00.000Z', 'Europe/London')).toBe('Mon 4 Mar, 09:00 GMT');
+    expect(formatDateTime('2030-03-04T09:00:00.000Z', 'Europe/London')).toBe(
+      'Mon 4 Mar, 09:00 GMT',
+    );
   });
 
   it('uses the dealership date, which can differ from the UTC date', () => {
     // 23:30 UTC on 4 July is already 00:30 on 5 July in London (BST).
-    expect(formatDateTime('2030-07-04T23:30:00.000Z', 'Europe/London')).toBe('Fri 5 Jul, 00:30 BST');
+    expect(formatDateTime('2030-07-04T23:30:00.000Z', 'Europe/London')).toBe(
+      'Fri 5 Jul, 00:30 BST',
+    );
   });
 });
 
 describe('localDateOf', () => {
   it('returns the calendar date in the zone', () => {
-    expect(localDateOf(new Date('2030-03-04T23:30:00.000Z'), 'America/New_York')).toBe('2030-03-04');
+    expect(localDateOf(new Date('2030-03-04T23:30:00.000Z'), 'America/New_York')).toBe(
+      '2030-03-04',
+    );
     expect(localDateOf(new Date('2030-07-01T23:30:00.000Z'), 'Europe/London')).toBe('2030-07-02');
-    expect(localDateOf(new Date('2030-03-04T02:00:00.000Z'), 'America/New_York')).toBe('2030-03-03');
+    expect(localDateOf(new Date('2030-03-04T02:00:00.000Z'), 'America/New_York')).toBe(
+      '2030-03-03',
+    );
   });
 });
 
