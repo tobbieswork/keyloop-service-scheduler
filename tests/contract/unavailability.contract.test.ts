@@ -70,3 +70,49 @@ describe.each([
     assertMatchesContract(overlapAppointment, op);
   });
 });
+
+describe.each([
+  ['bay', '/bays/{id}/unavailability', '/bays/{id}/unavailability/{blockId}'],
+  ['technician', '/technicians/{id}/unavailability', '/technicians/{id}/unavailability/{blockId}'],
+] as const)('listing and removing %s blocks matches the contract', (kind, listPath, itemPath) => {
+  const idOf = (w: Awaited<ReturnType<typeof createWorld>>) =>
+    kind === 'bay' ? w.bayIds[0]! : w.technicianIds[0]!;
+  const missing = '99999999-9999-4999-8999-999999999999';
+
+  it('GET: 200 list, 404 unknown, 400 malformed', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    await api.block(kind, idOf(world), blockBody('09:00', '10:00'));
+    const op = { method: 'GET', path: listPath } as const;
+
+    const list = await api.listBlocks(kind, idOf(world));
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toHaveLength(1);
+    assertMatchesContract(list, op);
+
+    const unknown = await api.listBlocks(kind, missing);
+    expect(unknown.statusCode).toBe(404);
+    assertMatchesContract(unknown, op);
+
+    const bad = await api.listBlocks(kind, 'nope');
+    expect(bad.statusCode).toBe(400);
+    assertMatchesContract(bad, op);
+  });
+
+  it('DELETE: 204 removed, 404 unknown, 400 malformed', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const block = (await api.block(kind, idOf(world), blockBody('09:00', '10:00'))).json();
+    const op = { method: 'DELETE', path: itemPath } as const;
+
+    const removed = await api.removeBlock(kind, idOf(world), block.id);
+    expect(removed.statusCode).toBe(204);
+    assertMatchesContract(removed, op);
+
+    const again = await api.removeBlock(kind, idOf(world), block.id);
+    expect(again.statusCode).toBe(404);
+    assertMatchesContract(again, op);
+
+    const bad = await api.removeBlock(kind, 'nope', missing);
+    expect(bad.statusCode).toBe(400);
+    assertMatchesContract(bad, op);
+  });
+});

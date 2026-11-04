@@ -22,6 +22,12 @@ export interface TestApi {
     id: string,
     body: Record<string, unknown>,
   ) => Promise<LightMyRequestResponse>;
+  listBlocks: (kind: 'bay' | 'technician', id: string) => Promise<LightMyRequestResponse>;
+  removeBlock: (
+    kind: 'bay' | 'technician',
+    id: string,
+    blockId: string,
+  ) => Promise<LightMyRequestResponse>;
   availability: (query: {
     dealershipId: string;
     serviceTypeId: string;
@@ -68,6 +74,16 @@ export async function startApi(
     getAppointment: (id) => app.inject({ method: 'GET', url: `/appointments/${id}` }),
     get: (url) => app.inject({ method: 'GET', url }),
     cancel: (id) => app.inject({ method: 'POST', url: `/appointments/${id}/cancel` }),
+    listBlocks: (kind, id) =>
+      app.inject({
+        method: 'GET',
+        url: `/${kind === 'bay' ? 'bays' : 'technicians'}/${id}/unavailability`,
+      }),
+    removeBlock: (kind, id, blockId) =>
+      app.inject({
+        method: 'DELETE',
+        url: `/${kind === 'bay' ? 'bays' : 'technicians'}/${id}/unavailability/${blockId}`,
+      }),
     block: (kind, id, body) =>
       app.inject({
         method: 'POST',

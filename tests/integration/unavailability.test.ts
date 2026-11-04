@@ -194,6 +194,125 @@ describe.each(kinds)('blocking a %s (FR-015, US5)', (kind) => {
   });
 });
 
+describe.each(kinds)('listing and removing blocks of a %s', (kind) => {
+  const other = kind === 'bay' ? 'technician' : 'bay';
+  const make = async (
+    world: World,
+    index: number,
+    from: string,
+    to: string,
+    reason = 'SAMPLE reason',
+  ) => {
+    const res = await api.block(kind, resourceId(world, kind, index), blockBody(from, to, reason));
+    expect(res.statusCode).toBe(201);
+    return res.json() as { id: string };
+  };
+
+  it("lists the resource's blocks, earliest first, with every field", async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const late = await make(world, 0, '14:00', '15:00', 'SAMPLE late');
+    const early = await make(world, 0, '09:00', '10:00', 'SAMPLE early');
+
+    const res = await api.listBlocks(kind, resourceId(world, kind, 0));
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([
+      {
+        id: early.id,
+        resourceId: resourceId(world, kind, 0),
+        startTime: '2030-03-04T09:00:00.000Z',
+        endTime: '2030-03-04T10:00:00.000Z',
+        reason: 'SAMPLE early',
+      },
+      {
+        id: late.id,
+        resourceId: resourceId(world, kind, 0),
+        startTime: '2030-03-04T14:00:00.000Z',
+        endTime: '2030-03-04T15:00:00.000Z',
+        reason: 'SAMPLE late',
+      },
+    ]);
+  });
+
+  it('returns an empty list, not an error, when there are none', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const res = await api.listBlocks(kind, resourceId(world, kind));
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([]);
+  });
+
+  it("lists only that resource's own blocks", async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 2, technicians: 2 });
+    const mine = await make(world, 0, '09:00', '10:00');
+    await make(world, 1, '09:00', '10:00');
+    const res = await api.listBlocks(kind, resourceId(world, kind, 0));
+    expect((res.json() as { id: string }[]).map((b) => b.id)).toEqual([mine.id]);
+  });
+
+  it('removes a block (204, no body) and it disappears from the list', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const block = await make(world, 0, '09:00', '10:00');
+
+    const res = await api.removeBlock(kind, resourceId(world, kind), block.id);
+
+    expect(res.statusCode).toBe(204);
+    expect(res.body).toBe('');
+    expect((await api.listBlocks(kind, resourceId(world, kind))).json()).toEqual([]);
+  });
+
+  it('gives the time back: booking and availability work again, and the period can be blocked anew', async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
+    const block = await make(world, 0, '09:00', '10:00');
+    expect((await api.book(bookingBody(world, monday('09:00')))).statusCode).toBe(409);
+    expect(await slots(world)).not.toContain('09:00');
+
+    await api.removeBlock(kind, resourceId(world, kind), block.id);
+
+    expect(await slots(world)).toContain('09:00');
+    expect((await api.book(bookingBody(world, monday('09:00')))).statusCode).toBe(201);
+    // The same period can be blocked again once it is free of appointments elsewhere in time.
+    expect(
+      (await api.block(kind, resourceId(world, kind), blockBody('11:00', '12:00'))).statusCode,
+    ).toBe(201);
+  });
+
+  it('removing twice: the second time is a 404', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const block = await make(world, 0, '09:00', '10:00');
+    expect((await api.removeBlock(kind, resourceId(world, kind), block.id)).statusCode).toBe(204);
+    const again = await api.removeBlock(kind, resourceId(world, kind), block.id);
+    expect(again.statusCode).toBe(404);
+    expect(again.json().error.code).toBe('NOT_FOUND');
+  });
+
+  it("cannot remove another resource's block through this resource, and leaves it in place", async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 2, technicians: 2 });
+    const theirs = await make(world, 1, '09:00', '10:00');
+    const res = await api.removeBlock(kind, resourceId(world, kind, 0), theirs.id);
+    expect(res.statusCode).toBe(404);
+    expect((await api.listBlocks(kind, resourceId(world, kind, 1))).json()).toHaveLength(1);
+  });
+
+  it(`cannot remove a ${other} block through a ${kind} URL`, async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const block = await api.block(other, resourceId(world, other), blockBody('09:00', '10:00'));
+    const res = await api.removeBlock(kind, resourceId(world, kind), block.json().id);
+    expect(res.statusCode).toBe(404);
+    expect((await api.listBlocks(other, resourceId(world, other))).json()).toHaveLength(1);
+  });
+
+  it('is a 404 for an unknown resource or block, and a 400 for malformed IDs', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const missing = '99999999-9999-4999-8999-999999999999';
+    expect((await api.listBlocks(kind, missing)).statusCode).toBe(404);
+    expect((await api.removeBlock(kind, missing, missing)).statusCode).toBe(404);
+    expect((await api.removeBlock(kind, resourceId(world, kind), missing)).statusCode).toBe(404);
+    expect((await api.listBlocks(kind, 'nope')).statusCode).toBe(400);
+    expect((await api.removeBlock(kind, 'nope', missing)).statusCode).toBe(400);
+    expect((await api.removeBlock(kind, resourceId(world, kind), 'nope')).statusCode).toBe(400);
+  });
+});
+
 describe('a block and the booking rules agree', () => {
   // The same cross-check as for plain bookings: whatever availability lists can be booked,
   // whatever it leaves out cannot, with a block in the picture.
