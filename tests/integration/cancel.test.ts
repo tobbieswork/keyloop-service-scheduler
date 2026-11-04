@@ -73,6 +73,18 @@ describe('POST /appointments/{id}/cancel (FR-013)', () => {
     expect(await slots()).toContain('09:00');
   });
 
+  it('works when the client declares a JSON content type but sends no body (curl, axios, fetch)', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const created = await bookOne(world);
+    const res = await api.app.inject({
+      method: 'POST',
+      url: `/appointments/${created.id}/cancel`,
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe('cancelled');
+  });
+
   it('keeps the cancelled record: it can still be retrieved, shown as cancelled', async () => {
     const world = await createWorld(testDb.db, { withHours: true });
     const created = await bookOne(world);

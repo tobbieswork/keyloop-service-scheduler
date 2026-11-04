@@ -344,10 +344,12 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
     async book(request, log) {
       const stopTimer = metrics.bookingDuration.startTimer();
       try {
-        const outcome = await withSpan('booking.transaction', () => run(request, log), {
-          'dealership.id': request.dealershipId,
-          'service_type.id': request.serviceTypeId,
-        });
+        const outcome = await withSpan(
+          'booking.transaction',
+          () => run(request, log),
+          { 'dealership.id': request.dealershipId, 'service_type.id': request.serviceTypeId },
+          { isExpected: (e) => e instanceof AppError },
+        );
         const a = outcome.appointment;
         if (outcome.replayed) {
           log.info({ outcome: 'replayed', appointmentId: a.id }, 'Booking request replayed');

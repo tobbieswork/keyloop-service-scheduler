@@ -76,6 +76,7 @@ export function createAvailabilityService(deps: AvailabilityDeps): AvailabilityS
           'availability.query',
           async () => slotsOn(await context(query), query.date),
           { 'dealership.id': query.dealershipId, 'service_type.id': query.serviceTypeId },
+          { isExpected: (e) => e instanceof AppError },
         );
       } finally {
         stopTimer();
@@ -101,6 +102,7 @@ export function createAvailabilityService(deps: AvailabilityDeps): AvailabilityS
             return found;
           },
           { 'dealership.id': query.dealershipId, 'service_type.id': query.serviceTypeId },
+          { isExpected: (e) => e instanceof AppError },
         );
       } finally {
         stopTimer();

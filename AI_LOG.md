@@ -178,3 +178,18 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **My decision:** TBD
 - **Open decisions for the owner:** (a) the new `UNAVAILABILITY_OVERLAP` code; (b) blocks may start in the past; (c) cancelling an appointment that has already started or passed is allowed; (d) there is no endpoint to list or delete blocks (the contract has none); is that enough for the demo?
 - **Verified by:** all tests red first; 4 cancel mutations and 11 unavailability mutations, all caught after the fixture fix (the closed-range, no-lock, check-before-lock and leaks-a-500 bugs each fail specific tests); full suite 428 tests, typecheck, ESLint, Prettier and the contract lint clean.
+
+### 2026-11-04: Performance check and the hands-on run (T055, T056, T058)
+
+- **Phase:** verification
+- **Asked:** continue autonomously: a performance smoke test, a cURL walk-through of every scenario, and run all of it by hand against the real compiled service
+- **AI produced:** a 50-concurrent performance test (booking p95 125 ms against a 300 ms target; availability p95 31 ms against 200 ms; mixed load also inside targets), `docs/examples.sh` covering every scenario, and a manual run against a real database with tracing on.
+- **Problem / gap: the hands-on run found three real problems that 439 automated tests had not.**
+  1. **Body-less JSON POSTs failed.** Cancelling returned 400 when the client sent `Content-Type: application/json` with no body (what curl with a header, axios and most fetch wrappers do). The integration tests never noticed because Fastify's `inject` adds no content type when there is no payload. Fixed test-first by dropping the declared content type on genuinely empty requests, NOT by replacing the JSON parser, because the default parser also refuses prototype-poisoning payloads (a test keeps that guarantee).
+  2. **Business rejections were recorded as errors in tracing.** Nine `exception` events appeared for ordinary 409 and 422 outcomes, which would look like failures on a dashboard. `withSpan` now takes an `isExpected` predicate; rejections get `outcome=rejected` and unexpected failures are still errors.
+  3. **Automatic HTTP and database tracing never worked.** Looking at what the server actually printed showed only the manual spans. In an ES-module project the instrumentation needs a loader hook registered before the app's imports. It was removed (plus two dependencies) instead of left as dead configuration, and the design doc now states the limitation. This closes the open question the AI raised at T021.
+  4. **The AI's own script was fragile twice:** a stray empty argument crashed one step, and it assumed a day always has a 24th free slot, so a second run failed. It now searches forward for a weekday with room and was run three times in a row.
+  5. The AI's first perf test generated bookings that were themselves invalid (a 17:00 start outside working hours); the failures were read as "my test data is wrong" and fixed, not as a service problem.
+- **My decision:** TBD
+- **Open decision for the owner:** keep tracing as manual spans only (current), or invest in the loader hook for automatic HTTP and database spans? The hook adds start-up complexity, and the Prometheus histogram plus request-ID logs already give request-level visibility.
+- **Verified by:** perf test (3 tests) with numbers printed; `examples.sh` run 3 times in a row against a real Postgres with every status code matching the documented behaviour; full suite 439 tests, typecheck, ESLint, Prettier and contract lint clean; empty-body hook broken on purpose (4 existing tests fail).

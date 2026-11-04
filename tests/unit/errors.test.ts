@@ -7,6 +7,7 @@ import {
 import { Writable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { acceptEmptyJsonBodies } from '../../src/api/empty-body.js';
 import {
   AppError,
   ERROR_STATUS,
@@ -44,6 +45,7 @@ function buildApp(logLines?: string[]): FastifyInstance {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
+  acceptEmptyJsonBodies(app);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.post(
@@ -62,6 +64,7 @@ function buildApp(logLines?: string[]): FastifyInstance {
     // Deliberately returns the wrong shape, as a programming mistake would.
     async () => ({ id: 5 }) as unknown as { id: string },
   );
+  app.post('/no-body', async () => ({ ok: true }));
   app.get('/boom', async () => {
     throw new Error(SECRET_INTERNAL);
   });
@@ -197,6 +200,62 @@ describe('request validation maps to 400 VALIDATION_ERROR', () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('VALIDATION_ERROR');
+  });
+});
+
+describe('body-less requests that still declare a JSON content type', () => {
+  // curl -H 'content-type: application/json', axios and fetch wrappers all do this for a POST with
+  // no body (for example "cancel"). It is a normal request, not a malformed one.
+  const jsonHeaders = { 'content-type': 'application/json' };
+
+  it('is accepted on a route that takes no body', async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: 'POST', url: '/no-body', headers: jsonHeaders });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('is accepted with an explicit empty body too', async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/no-body',
+      headers: jsonHeaders,
+      payload: '',
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('is still a 400 VALIDATION_ERROR on a route that REQUIRES a body', async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/echo',
+      headers: { ...jsonHeaders, 'idempotency-key': 'key-12345678' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('does not weaken the JSON parser: a real malformed body is still rejected', async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/no-body',
+      headers: jsonHeaders,
+      payload: '{ oops',
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("keeps Fastify's protection against prototype-poisoning payloads", async () => {
+    const app = buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/no-body',
+      headers: jsonHeaders,
+      payload: '{"__proto__": {"admin": true}}',
+    });
+    expect(res.statusCode).toBe(400); // the default secure parser refuses it
   });
 });
 

@@ -121,10 +121,10 @@
 **Purpose**: Documentation, performance check and the assessment artifacts.
 
 - [ ] T054 Write `docs/system-design.md`: architecture diagram (Mermaid), component roles, data flow, technology choices with justification (from `research.md`), observability strategy, and the GenAI-in-design section
-- [ ] T055 [P] Add `docs/examples.sh` with cURL examples for every scenario in `quickstart.md`
-- [ ] T056 [P] Add a performance smoke test `tests/integration/perf.test.ts`: 50 concurrent bookings and availability queries stay within the plan's p95 targets (booking 300 ms, availability 200 ms)
+- [x] T055 [P] Add `docs/examples.sh` with cURL examples for every scenario in `quickstart.md`
+- [x] T056 [P] Add a performance smoke test `tests/integration/perf.test.ts`: 50 concurrent bookings and availability queries stay within the plan's p95 targets (booking 300 ms, availability 200 ms)
 - [ ] T057 Run the full suite, `npm run lint`, `npm run typecheck` and `redocly lint`; fix everything
-- [ ] T058 Run every scenario in `quickstart.md` by hand against the running service and fix any doc drift
+- [x] T058 Run every scenario in `quickstart.md` by hand against the running service and fix any doc drift
 - [ ] T059 Write `README.md`: build, run and test instructions and the AI Collaboration Narrative (strategy, verification, mistakes caught, quality), built from `AI_LOG.md`
 - [ ] T060 Final `AI_LOG.md` cleanup (replace the guidance paragraph, keep real entries) and run `/speckit-analyze` to cross-check spec, plan and tasks
 - [ ] T061 Draft the 5-10 minute video script: introduction, design walkthrough, implementation highlights, AI collaboration story (1-2 min), demo, lessons learned

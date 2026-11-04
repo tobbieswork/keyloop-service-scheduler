@@ -303,6 +303,43 @@ describe('tracing: withSpan', () => {
     expect(span?.events.some((e) => e.name === 'exception')).toBe(true);
   });
 
+  it('does not mark an EXPECTED failure as an error, but still rethrows it and notes the outcome', async () => {
+    exporter.reset();
+    class Rejected extends Error {}
+    await expect(
+      withSpan(
+        'booking.transaction',
+        async () => {
+          throw new Rejected('no capacity');
+        },
+        { 'dealership.id': 'd-1' },
+        { isExpected: (e) => e instanceof Rejected },
+      ),
+    ).rejects.toThrow('no capacity');
+    const [span] = exporter.getFinishedSpans();
+    expect(span?.status.code).toBe(0); // not an error: a business rejection is a normal outcome
+    expect(span?.events.some((e) => e.name === 'exception')).toBe(false);
+    expect(span?.attributes['outcome']).toBe('rejected');
+  });
+
+  it('still marks an UNEXPECTED failure as an error when an expectation is given', async () => {
+    exporter.reset();
+    class Rejected extends Error {}
+    await expect(
+      withSpan(
+        'booking.transaction',
+        async () => {
+          throw new Error('database down');
+        },
+        undefined,
+        { isExpected: (e) => e instanceof Rejected },
+      ),
+    ).rejects.toThrow('database down');
+    const [span] = exporter.getFinishedSpans();
+    expect(span?.status.code).toBe(2);
+    expect(span?.events.some((e) => e.name === 'exception')).toBe(true);
+  });
+
   it('nests: a span started inside another becomes its child', async () => {
     exporter.reset();
     await withSpan('outer', async () => withSpan('inner', async () => 1));

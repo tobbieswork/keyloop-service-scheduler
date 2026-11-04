@@ -16,6 +16,7 @@ import { createAvailabilityService } from '../services/availability.js';
 import { createBookingService } from '../services/booking.js';
 import { createCancelService } from '../services/cancel.js';
 import { createUnavailabilityService } from '../services/unavailability.js';
+import { acceptEmptyJsonBodies } from './empty-body.js';
 import { registerErrorHandling } from './errors.js';
 import { registerAppointmentRoutes } from './routes/appointments.js';
 import { registerAvailabilityRoutes } from './routes/availability.js';
@@ -67,6 +68,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandling(app);
+  acceptEmptyJsonBodies(app);
 
   await app.register(swagger, {
     openapi: {
