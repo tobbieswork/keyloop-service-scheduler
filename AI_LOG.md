@@ -47,3 +47,11 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **My decision:** Did not accept the 7 style warnings. Fixed the license and server URL; turned off the "4XX response" rule for the 5 endpoints with no client-error case (health, ready, metrics, two reference lists) rather than document errors the service will never return
 - **Verified by:** verbatim doc SQL: 10/10 scenarios behave as designed (overlap rejected on bay and technician, back-to-back allowed, cancel frees the slot, duplicate key rejected, empty and inclusive-upper periods rejected). 20 parallel inserts for one slot: 1 confirmed, 19 rejected by `appointment_no_bay_overlap`. OpenAPI: valid after fix; 0 errors and 0 warnings after the second pass (with a documented rule exception)
 - **Lesson for the narrative:** a green or red result is only as trustworthy as the test harness. Check that the thing under test is the real artifact
+
+### 2026-11-04: Task breakdown
+- **Phase:** design
+- **Asked:** run /speckit-tasks with tests before implementation
+- **AI produced:** tasks.md with 61 tasks in 8 phases; format-checked with a regex (all 61 match)
+- **Problem / gap:** AI found that FR-015 (resource unavailability) belongs to no user story in the spec, so tagged those 6 tasks `[FR-015]` instead of inventing a story. Also reordered: US3 (P1) comes after US2 (P2) because the conflict alternatives (FR-009) reuse the availability logic
+- **My decision:** TBD
+- **Verified by:** TBD
