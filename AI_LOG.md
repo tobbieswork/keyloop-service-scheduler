@@ -1,9 +1,10 @@
 # AI Log
 
-One entry per meaningful AI interaction. Aim for 8-12 entries, including at least
-2-3 where the AI was wrong and 1-2 where I overruled it. Feeds the README narrative.
+A chronological record of my meaningful interactions with the AI: what I asked, what it produced,
+what was wrong or risky, what I decided, and how it was checked. It includes the AI's mistakes and
+the times I overruled it. The README's AI Collaboration Narrative is a summary of this log.
 
-## Template
+## Entry format
 
 ### YYYY-MM-DD: <short title>
 
@@ -249,3 +250,14 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
   3. **A second auto-mode block, handled the same way as the first:** the AI tried to stop dev servers by port and by process-name pattern, which could have stopped a server the owner had started. It was blocked, not worked around. Instead the AI proved the single leftover process was its own (its PID matched the PID in its own captured log and nothing else was listening), stopped that exact PID, and ran the final check as tracked background tasks on spare ports (3101, 5199) that it stopped by task ID.
 - **My decision:** The owner reported the failure; no decision pending.
 - **Verified by:** reproduced the exact error, fixed it, then started BOTH dev servers (backend and frontend) via `npm run dev` on spare ports with no warnings or errors, the UI's `/api` proxy returning the seeded dealerships from the database; the new test was red before the fix; full suite 523 tests (462 backend, 61 frontend); all ports confirmed free afterwards.
+
+### 2026-11-04: Writing the narrative, the GenAI section and the video script in the owner's voice
+
+- **Phase:** documentation (final)
+- **Asked:** the owner chose to answer prompts in their own words and have the AI assemble them, then confirmed each suggested line one by one.
+- **AI produced:** second drafts of the README narrative, the design document's GenAI section and the video script, with 13 `CONFIRM` markers on every line that was suggested wording rather than the owner's own.
+- **Problem / gap:**
+  1. The owner's first three answers repeated the AI's own example lists word for word, so their reasons were missing. The AI used the facts (each checked against the conversation) and marked its suggested reasons `CONFIRM` instead of presenting them as the owner's.
+  2. The AI had added a sentence the owner never said ("so I work with AI agents every day"), an inference from their side-project description. It was flagged and softened to "working with AI agents is familiar to me".
+- **My decision:** Kept the suggested reasons for the override, the alternatives rule and the demo picker, and said the override was worth it because it made the scheduler realistic. Kept all six business cases as things they took in. Kept only the first sentence of the AI lesson ("it states wrong things with confidence, so I do not trust a result until I have seen the check fail"). Kept the "what I would do differently" line as written (checking was mostly on behaviour, tests and logs, not line by line). Introduction wording and nickname kept. For the video's "what was hard" they chose trusting AI that works unattended. Mistakes table trimmed to the strongest 8 rows; all 11 remain in this log.
+- **Verified by:** no `CONFIRM`, `TBD` or draft-comment markers remain; all 14 relative links in the documents resolve; backend 61 of 61 and UI 10 of 10 tasks done; every number quoted in the README re-measured in the final run below.

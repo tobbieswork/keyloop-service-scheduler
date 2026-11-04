@@ -124,10 +124,6 @@ spans only (automatic HTTP and database spans need an ESM loader hook, see the d
 
 ## AI Collaboration Narrative
 
-<!-- SECOND DRAFT, built from the owner's answers, AI_LOG.md and the commit history. Lines marked
-CONFIRM are suggested wording the owner has NOT yet confirmed: keep only what you can say honestly,
-in your own words, then delete this comment. -->
-
 I used Claude Code throughout. I made the product and design decisions; the AI researched, drafted,
 built and tested. I treated everything it produced as a draft until I had seen it fail and then pass.
 
@@ -141,17 +137,17 @@ built and tested. I treated everything it produced as a draft until I had seen i
 - **The decisions were mine.** The AI asked clarifying questions and recommended answers; I made the
   calls that shaped the product:
   - I **overrode its recommendation** to keep resource availability simple, and chose per-resource
-    unavailability (maintenance, leave, shifts) and accepted the extra work. CONFIRM: _"Real dealerships
+    unavailability (maintenance, leave, shifts) and accepted the extra work. Real dealerships
     have bays under maintenance and technicians on leave, so treating every resource as always free
-    would book work nobody can do."_
+    would book work nobody can do.
   - I chose to **start a fresh repository** instead of continuing an older half-built one.
   - I set the **alternatives rule**: when a time is taken, offer up to 5 other slots, the requested day
-    first and then the next 7 days. CONFIRM: _"A customer who cannot get their time should be offered
-    something useful, not a dead end."_
+    first and then the next 7 days. A customer who cannot get their time should be offered
+    something useful, not a dead end.
   - I asked for the missing **user story for blocking resources** to be added to the spec instead of
     leaving a requirement with no story, and later asked for **list and remove** for those blocks.
   - I kept the **SAMPLE customer picker** in the UI rather than expose customers through the API.
-    CONFIRM: _"Customer names and contacts are personal data, and the service has no authentication yet."_
+    Customer names and contacts are personal data, and the service has no authentication yet.
 - **I let it work in long stretches and saved my decisions for later.** When I needed a break I told it
   to keep going and to collect the questions that needed me. Each one waited as a `TBD` in `AI_LOG.md`
   until I answered them all in one round.
@@ -176,19 +172,19 @@ built and tested. I treated everything it produced as a draft until I had seen i
 
 ### Mistakes caught (the useful part)
 
-| What went wrong                                                                                                               | How it was caught                                                                             | Outcome                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| The AI's own test harness was wrong three times (a bad UUID, a failed `sed`, a truncated file)                                | Results did not match the SQL being tested                                                    | Reran against the document's SQL extracted verbatim                                                     |
-| The AI wrote a code comment claiming Node's JSON errors quote the request body                                                | A deliberate break survived; a direct probe showed the claim was false                        | Comment and test corrected; behaviour kept as defence in depth                                          |
-| `FOR UPDATE` row locks made a test deadlock                                                                                   | A hung test run                                                                               | Diagnosed as a conflict with foreign-key locks; now `FOR NO KEY UPDATE`, with a regression test         |
-| A request with the same idempotency key could get a false 409                                                                 | Predicted from the code, then reproduced deterministically with a test seam                   | Re-read the key before ever answering 409                                                               |
-| One run in 20 gave a false "no capacity" (5 confirmed, 25 rejected, a place free)                                             | The 20-run flakiness loop                                                                     | Fixed retry count replaced by a time budget; 20 of 20 clean afterwards                                  |
-| Cancelling returned 400 from real clients                                                                                     | The hands-on cURL run (every integration test missed it)                                      | Empty JSON bodies accepted; the JSON parser left untouched                                              |
-| Ordinary 409s were recorded as tracing errors; automatic tracing produced nothing                                             | Reading what the running server actually emitted                                              | Expected rejections no longer errors; dead instrumentation removed and documented                       |
-| Tests blocked a resource nobody would have chosen, so a bug survived                                                          | A deliberate break survived                                                                   | Tests now block the resource that would be picked first                                                 |
-| The UI's list of times vanished on every refresh, the confirmation stayed open after a conflict, phone dropdowns were cut off | A run in a real browser against the real API (58 UI tests with a fake backend had passed)     | Fixed test-first; run again in a browser                                                                |
-| **`npm run dev` did not start**                                                                                               | **I ran it myself**                                                                           | Script order fixed; a deprecation warning removed; a test now fails on any such warning                 |
-| The AI's own mutation script overwrote its uncommitted work (three files shared a name)                                       | Mutations that should apply reported "did not apply", and a line count showed identical files | Recovered from the last commit; the script now keeps full paths and refuses to run on uncommitted files |
+| What went wrong                                                                                                               | How it was caught                                                                         | Outcome                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `FOR UPDATE` row locks made a test deadlock                                                                                   | A hung test run                                                                           | Diagnosed as a conflict with foreign-key locks; now `FOR NO KEY UPDATE`, with a regression test |
+| A request with the same idempotency key could get a false 409                                                                 | Predicted from the code, then reproduced deterministically with a test seam               | Re-read the key before ever answering 409                                                       |
+| One run in 20 gave a false "no capacity" (5 confirmed, 25 rejected, a place free)                                             | The 20-run flakiness loop                                                                 | Fixed retry count replaced by a time budget; 20 of 20 clean afterwards                          |
+| Cancelling returned 400 from real clients                                                                                     | The hands-on cURL run (every integration test missed it)                                  | Empty JSON bodies accepted; the JSON parser left untouched                                      |
+| Ordinary 409s were recorded as tracing errors; automatic tracing produced nothing                                             | Reading what the running server actually emitted                                          | Expected rejections no longer errors; dead instrumentation removed and documented               |
+| Tests blocked a resource nobody would have chosen, so a bug survived                                                          | A deliberate break survived                                                               | Tests now block the resource that would be picked first                                         |
+| The UI's list of times vanished on every refresh, the confirmation stayed open after a conflict, phone dropdowns were cut off | A run in a real browser against the real API (58 UI tests with a fake backend had passed) | Fixed test-first; run again in a browser                                                        |
+| **`npm run dev` did not start**                                                                                               | **I ran it myself**                                                                       | Script order fixed; a deprecation warning removed; a test now fails on any such warning         |
+
+The smaller slips, including the AI's own test-harness bugs and a script that overwrote its own files, are
+all recorded in `AI_LOG.md`.
 
 ### The booking UI
 
@@ -200,7 +196,7 @@ picker (the API deliberately has no customer-listing endpoint), and the booking 
 ### What I learned
 
 I learned a lot about how a car-service business really runs, with real cases I had not thought about
-before. CONFIRM: keep only the ones you genuinely learned.
+before.
 
 - A booking needs **two things at once**: a free bay and a technician with the right skill.
 - **Cleanup time** between jobs takes capacity even though the customer never sees it.
@@ -210,15 +206,14 @@ before. CONFIRM: keep only the ones you genuinely learned.
   alternatives**, not an error.
 - Staff leave and bay maintenance **reduce capacity**, and a cancellation should give the place back.
 
-About working with AI, CONFIRM: _"AI is fast, but it states wrong things with confidence, so I do not
-trust a result until I have seen the check fail. The most useful instruction was not 'write more tests'
-but 'try to break your own work'."_
+About working with AI: it is fast, but it states wrong things with confidence, so I do not trust a
+result until I have seen the check fail.
 
 ### What I would do differently, and where I am less sure
 
-CONFIRM: _"Because I let the AI work for long stretches, my checking was mostly on behaviour, tests and
+Because I let the AI work for long stretches, my checking was mostly on behaviour, tests and
 logs, not line by line through the generated code. Next time I would read the key parts, such as the
-booking transaction, with it before moving on."_ The product limits are listed under "Assumptions and
+booking transaction, with it before moving on. The product limits are listed under "Assumptions and
 limitations" above.
 
 ### Quality

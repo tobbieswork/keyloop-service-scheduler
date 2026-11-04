@@ -269,9 +269,6 @@ The brief asks for one layer in depth; the backend is that layer. A small React 
 
 ## 12. How GenAI was used in the design phase
 
-<!-- SECOND DRAFT, built from the owner's answers, AI_LOG.md and the commit history. CONFIRM lines are
-suggested wording the owner has not yet confirmed. Delete this comment when done. -->
-
 The author used **Claude Code** as a collaborator and followed **spec-driven development** with
 GitHub Spec Kit: a constitution, a specification, a clarify session, a plan, a task list and a
 cross-artifact analysis, all committed as the work progressed.
@@ -285,8 +282,8 @@ answers to the five clarifying questions, one of which (per-resource unavailabil
 recommendation to keep scope small; starting a clean repository instead of continuing an older
 half-built project; the alternatives rule (up to 5 slots, the requested day first, then the next 7
 days); adding the missing user story for blocking resources to the spec; later, list and remove for
-those blocks; and keeping a labelled SAMPLE customer picker in the UI. CONFIRM the reasons in the
-README narrative before submitting.
+those blocks; and keeping a labelled SAMPLE customer picker in the UI. The reasons are in the README
+narrative.
 
 **What the AI contributed.** It drafted the specification, plan, research and contract; compared the
 options for preventing double-booking (an application check, row locks, serializable isolation,

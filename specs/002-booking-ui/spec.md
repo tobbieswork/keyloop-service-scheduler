@@ -1,6 +1,6 @@
 # Feature Specification: Booking UI
 
-**Created**: 2026-11-04 | **Status**: Draft (AI-drafted, pending owner review) | **Depends on**: `001-service-scheduler`
+**Created**: 2026-11-04 | **Status**: Reviewed (AI-drafted; scope and limits accepted by the owner 2026-11-04) | **Depends on**: `001-service-scheduler`
 
 **Input**: "A simple frontend" for the Unified Service Scheduler, talking to the real backend API.
 

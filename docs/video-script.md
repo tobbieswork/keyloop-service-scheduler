@@ -1,8 +1,6 @@
 # Video script (target 8 minutes, limit 10)
 
-<!-- SECOND DRAFT, built from the owner's answers. Everything in "Say something like" is a
-suggestion in your voice: change it, cut it, say it your way. CONFIRM marks lines you have not yet
-confirmed. Never say anything you could not explain if asked. Delete this comment when done. -->
+_Tip: say only what you could explain if asked, and change any line to sound like you._
 
 ## 0:00 to 0:45 Introduction
 
@@ -10,8 +8,7 @@ Say something like:
 
 - "Hi, I'm Dang Phat Nguyen, most people call me Tobbies. I'm a software engineer at FPT Corporation."
 - "My day job is a data platform: how large companies explore, manage, pipeline and store their data.
-  On the side I'm building a project that manages AI agents to automate workflows, so I work with AI
-  agents every day. It's called opencode-telegram-bot and it's on my GitHub."
+  On the side I'm building a project that manages AI agents to automate workflows, so working with AI agents is familiar to me. It's called opencode-telegram-bot and it's on my GitHub."
 - "I'm very interested in Keyloop and in how Keyloop applies AI in its work, so an assignment where AI
   is a required collaborator was a great fit."
 - "I chose Scenario A, the service scheduler. In one sentence: it books a car-service appointment only
@@ -45,9 +42,8 @@ Tell it as three moments you can show on screen. Facts are in `AI_LOG.md`.
 
 **A. I overrode the AI (about 35 seconds).** Say something like: "When we clarified the requirements,
 the AI recommended keeping it simple: every bay and technician is available whenever the dealership
-is open. I chose per-resource unavailability instead, because [CONFIRM: real dealerships have bays
-under maintenance and technicians on leave]. That meant a whole extra user story, and the hardest
-tests in the project, and I think it was worth it because [CONFIRM]." Show the clarify answer in the
+is open. I chose per-resource unavailability instead, because real dealerships have bays under maintenance and technicians on leave. That meant a whole extra user story, and the hardest
+tests in the project, and I think it was worth it because it made the scheduler realistic: without it, it would ignore staff leave and bay maintenance, and it led to the strongest race tests." Show the clarify answer in the
 spec and the blocking tests.
 
 **B. The test that deadlocked (about 35 seconds).** Say something like: "A test hung forever. The AI
@@ -65,17 +61,15 @@ before and after of the list, and the dev-server entry in the log.
 
 ## 6:45 to 7:45 What I learned and what was hard
 
-Say something like (CONFIRM each one is true for you):
+Say something like:
 
 - "I learned a lot about how a car-service business really runs, with real cases I had not thought
   about: a booking needs a free bay _and_ a technician with the right skill; cleanup time between jobs
   takes capacity; '9 o'clock' means the dealership's clock, including daylight saving; people click
   twice and networks retry; two customers can want the last slot; staff leave and bay maintenance
   reduce capacity."
-- "About AI: it is fast, but it states wrong things with confidence. The most useful instruction was not
-  'write more tests', it was 'try to break your own work'."
-- Challenges, in your words: [for example making race conditions repeatable, daylight saving, or
-  knowing when a passing result is not real evidence].
+- "About AI: it is fast, but it states wrong things with confidence, so I do not trust a result until I have seen the check fail."
+- "The hardest part was trusting AI that works unattended. I let it run in long stretches, so I had to check its output afterwards instead of watching it write."
 
 ## 7:45 to 8:15 Close
 
