@@ -14,7 +14,12 @@ export interface World {
 
 export interface WorldOptions {
   bays?: number;
+  /** Technicians who hold the required skill. */
   technicians?: number;
+  /** Technicians at the same dealership who do NOT hold the required skill. */
+  unqualifiedTechnicians?: number;
+  /** Add Monday-Friday 08:00-17:00 working hours (needed for booking tests). */
+  withHours?: boolean;
   durationMinutes?: number;
   bufferMinutes?: number;
   timeZone?: string;
@@ -23,6 +28,7 @@ export interface WorldOptions {
 /** Create one dealership with bays, qualified technicians, a service type, a customer and a vehicle. */
 export async function createWorld(db: Db, options: WorldOptions = {}): Promise<World> {
   const { bays = 2, technicians = 2, durationMinutes = 60, bufferMinutes = 0 } = options;
+  const unqualified = options.unqualifiedTechnicians ?? 0;
 
   const dealership = await db
     .insertInto('dealership')
@@ -74,6 +80,20 @@ export async function createWorld(db: Db, options: WorldOptions = {}): Promise<W
     bayIds.push(bay.id);
   }
 
+  if (options.withHours) {
+    await db
+      .insertInto('dealership_hours')
+      .values(
+        [1, 2, 3, 4, 5].map((weekday) => ({
+          dealership_id: dealership.id,
+          weekday,
+          open_time: '08:00',
+          close_time: '17:00',
+        })),
+      )
+      .execute();
+  }
+
   const technicianIds: string[] = [];
   for (let i = 1; i <= technicians; i++) {
     const technician = await db
@@ -86,6 +106,14 @@ export async function createWorld(db: Db, options: WorldOptions = {}): Promise<W
       .values({ technician_id: technician.id, skill_id: skill.id })
       .execute();
     technicianIds.push(technician.id);
+  }
+
+  for (let i = 1; i <= unqualified; i++) {
+    // No technician_skill row, so this person can never be assigned the service.
+    await db
+      .insertInto('technician')
+      .values({ dealership_id: dealership.id, name: `SAMPLE Unqualified ${i}` })
+      .execute();
   }
 
   return {

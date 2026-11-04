@@ -21,6 +21,8 @@ export interface AppDeps {
   metrics?: Metrics;
   /** Where logs go. Defaults to stdout; tests pass a stream to capture them. */
   logStream?: Writable;
+  /** Current time. Defaults to the real clock; tests inject a fixed one. */
+  clock?: () => Date;
   /** How to check the database for /ready. Defaults to `SELECT 1`. */
   readinessCheck?: () => Promise<void>;
   /** /ready gives up after this long. Default 2000 ms. */
