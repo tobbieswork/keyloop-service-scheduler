@@ -122,6 +122,34 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+    get:
+      operationId: listBayUnavailability
+      summary: List the unavailability periods of a bay, earliest first
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        default: { $ref: '#/components/responses/Error' }
+        '200':
+          description: Possibly empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Unavailability' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /bays/{id}/unavailability/{blockId}:
+    delete:
+      operationId: deleteBayUnavailability
+      summary: Remove one unavailability period of a bay
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: blockId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        default: { $ref: '#/components/responses/Error' }
+        '204': { description: Removed }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /technicians/{id}/unavailability:
     post:
       operationId: createTechnicianUnavailability
@@ -143,6 +171,34 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+    get:
+      operationId: listTechnicianUnavailability
+      summary: List the unavailability periods of a technician, earliest first
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        default: { $ref: '#/components/responses/Error' }
+        '200':
+          description: Possibly empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Unavailability' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /technicians/{id}/unavailability/{blockId}:
+    delete:
+      operationId: deleteTechnicianUnavailability
+      summary: Remove one unavailability period of a technician
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: blockId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        default: { $ref: '#/components/responses/Error' }
+        '204': { description: Removed }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /dealerships:
     get:
       operationId: listDealerships

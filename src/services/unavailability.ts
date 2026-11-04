@@ -3,9 +3,12 @@ import { sql } from 'kysely';
 import { AppError } from '../api/errors.js';
 import type { Db } from '../db/index.js';
 import {
+  deleteBlock,
   hasConfirmedAppointment,
   insertBlock,
+  listBlocks,
   lockResource,
+  resourceExists,
   type ResourceKind,
   type UnavailabilityRecord,
 } from '../db/repositories/unavailability.js';
@@ -29,6 +32,20 @@ export interface UnavailabilityService {
     request: BlockRequest,
     log: FastifyBaseLogger,
   ): Promise<UnavailabilityRecord>;
+
+  /** The resource's blocks, earliest first. An unknown resource is a 404; no blocks is an empty list. */
+  list(kind: ResourceKind, resourceId: string): Promise<UnavailabilityRecord[]>;
+
+  /**
+   * Remove a block. This only ever frees capacity, so it cannot cause a double-booking and needs
+   * no lock. Removing an unknown block, or one that belongs to another resource, is a 404.
+   */
+  remove(
+    kind: ResourceKind,
+    resourceId: string,
+    blockId: string,
+    log: FastifyBaseLogger,
+  ): Promise<void>;
 }
 
 const PG_EXCLUSION_VIOLATION = '23P01';
@@ -37,6 +54,26 @@ export function createUnavailabilityService(deps: { db: Db }): UnavailabilitySer
   const { db } = deps;
 
   return {
+    async list(kind, resourceId) {
+      if (!(await resourceExists(db, kind, resourceId))) {
+        throw new AppError('NOT_FOUND', `No ${kind} exists with that ID`);
+      }
+      return listBlocks(db, kind, resourceId);
+    },
+
+    async remove(kind, resourceId, blockId, log) {
+      if (!(await resourceExists(db, kind, resourceId))) {
+        throw new AppError('NOT_FOUND', `No ${kind} exists with that ID`);
+      }
+      if (!(await deleteBlock(db, kind, resourceId, blockId))) {
+        throw new AppError(
+          'NOT_FOUND',
+          `No unavailability period exists with that ID for that ${kind}`,
+        );
+      }
+      log.info({ outcome: 'unblocked', kind, resourceId, blockId }, 'Block removed');
+    },
+
     async block(kind, resourceId, request, log) {
       if (!(request.end.getTime() > request.start.getTime())) {
         throw new AppError('VALIDATION_ERROR', 'The end of the period must be after its start');

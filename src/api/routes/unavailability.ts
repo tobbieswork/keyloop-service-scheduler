@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { ResourceKind } from '../../db/repositories/unavailability.js';
 import type { UnavailabilityService } from '../../services/unavailability.js';
-import { idParamsSchema } from '../schemas.js';
+import { id, idParamsSchema } from '../schemas.js';
 
 const bodySchema = z
   .object({
@@ -43,7 +43,49 @@ export function registerUnavailabilityRoutes(
     },
   ];
 
+  const blockParams = z.object({ id, blockId: id });
+
   for (const { kind, url, summary } of routes) {
+    typed.get(
+      url,
+      {
+        schema: {
+          summary: `List the unavailability periods of a ${kind}, earliest first`,
+          params: idParamsSchema,
+          response: { 200: z.array(unavailabilitySchema) },
+        },
+      },
+      async (request) => {
+        const records = await deps.unavailability.list(kind, request.params.id);
+        return records.map((r) => ({
+          id: r.id,
+          resourceId: r.resourceId,
+          startTime: r.startTime.toISOString(),
+          endTime: r.endTime.toISOString(),
+          reason: r.reason,
+        }));
+      },
+    );
+
+    typed.delete(
+      `${url}/:blockId`,
+      {
+        schema: {
+          summary: `Remove one unavailability period of a ${kind}`,
+          params: blockParams,
+        },
+      },
+      async (request, reply) => {
+        await deps.unavailability.remove(
+          kind,
+          request.params.id,
+          request.params.blockId,
+          request.log,
+        );
+        return reply.status(204).send();
+      },
+    );
+
     typed.post(
       url,
       {

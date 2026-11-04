@@ -72,3 +72,49 @@ export async function insertBlock(
   const r = range(row.start, row.end);
   return { id: row.id, resourceId: id, startTime: r.start, endTime: r.end, reason };
 }
+
+/** True when the bay or technician exists. */
+export async function resourceExists(db: Db, kind: ResourceKind, id: string): Promise<boolean> {
+  const t = TABLES[kind];
+  const { rows } = await sql`SELECT 1 FROM ${sql.table(t.resource)} WHERE id = ${id}`.execute(db);
+  return rows.length > 0;
+}
+
+/** Every block of one resource, earliest first. */
+export async function listBlocks(
+  db: Db,
+  kind: ResourceKind,
+  resourceId: string,
+): Promise<UnavailabilityRecord[]> {
+  const t = TABLES[kind];
+  const { rows } = await sql<{ id: string; start: Date; end: Date; reason: string }>`
+    SELECT id, lower(period) AS start, upper(period) AS "end", reason
+      FROM ${sql.table(t.block)}
+     WHERE ${sql.ref(t.column)} = ${resourceId}
+     ORDER BY lower(period), id`.execute(db);
+  return rows.map((r) => ({
+    id: r.id,
+    resourceId,
+    startTime: r.start,
+    endTime: r.end,
+    reason: r.reason,
+  }));
+}
+
+/**
+ * Delete one block of one resource. Both ids must match, so a block can never be removed through
+ * the wrong resource or the wrong kind. Returns false when there was nothing to delete.
+ */
+export async function deleteBlock(
+  db: Db,
+  kind: ResourceKind,
+  resourceId: string,
+  blockId: string,
+): Promise<boolean> {
+  const t = TABLES[kind];
+  const { rows } = await sql`
+    DELETE FROM ${sql.table(t.block)}
+     WHERE id = ${blockId} AND ${sql.ref(t.column)} = ${resourceId}
+    RETURNING id`.execute(db);
+  return rows.length > 0;
+}
