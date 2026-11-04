@@ -41,7 +41,7 @@
 - [x] T018 Write failing test `tests/unit/observability.test.ts` (unit, no database needed): every log line carries the request ID, no log line contains a customer name or VIN, metrics labels stay bounded, spans record errors
 - [x] T019 Add observability base in `src/observability/`: pino logger with request ID (`x-request-id` or generated) and PII-safe serializers, Prometheus registry, OpenTelemetry bootstrap (console exporter by default, OTLP via env)
 - [x] T020 Build the Fastify app in `src/server.ts` and `src/api/app.ts` with `/health`, `/ready` (DB check), `/metrics`, Zod type provider and Swagger
-- [ ] T021 Add contract-test helper `tests/contract/helpers.ts` that validates a response against `contracts/openapi.yaml`
+- [x] T021 Add contract-test helper `tests/contract/helpers.ts` that validates a response against `contracts/openapi.yaml`
 
 **Checkpoint**: migrations apply on a fresh Postgres, the constraint tests pass, the server starts and `/health` responds. Add the first `AI_LOG.md` implementation entry.
 

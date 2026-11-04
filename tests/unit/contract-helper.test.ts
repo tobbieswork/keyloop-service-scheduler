@@ -4,6 +4,7 @@ import {
   assertMatchesContract,
   contractErrorCodes,
   ContractViolation,
+  type ContractOperation,
   type ContractResponse,
 } from '../contract/helpers.js';
 
@@ -102,7 +103,7 @@ describe('assertMatchesContract: accepts valid responses', () => {
 });
 
 describe('assertMatchesContract: rejects violations', () => {
-  const rejects = (response: ContractResponse, op = book, pattern?: RegExp) => {
+  const rejects = (response: ContractResponse, op: ContractOperation = book, pattern?: RegExp) => {
     try {
       assertMatchesContract(response, op);
     } catch (error) {
