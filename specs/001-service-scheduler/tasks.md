@@ -28,7 +28,7 @@
 
 - [x] T006 Write failing config tests in `tests/unit/config.test.ts` (missing or invalid env vars are rejected at startup)
 - [x] T007 Implement `src/config.ts` with Zod-validated environment config
-- [ ] T008 Add Kysely instance, generated or hand-written table types and a migrate runner in `src/db/index.ts`, `src/db/types.ts`, `src/db/migrate.ts`
+- [x] T008 Add Kysely instance, generated or hand-written table types and a migrate runner in `src/db/index.ts`, `src/db/types.ts`, `src/db/migrate.ts`
 - [ ] T009 Add Testcontainers helper `tests/integration/helpers/db.ts` (start Postgres, run migrations, truncate between tests)
 - [ ] T010 Remove `passWithNoTests` from `vitest.config.ts`, then write failing integration test `tests/integration/schema.constraints.test.ts` using Testcontainers: overlapping bay rejected, overlapping technician rejected, back-to-back allowed, cancelled frees the slot, duplicate idempotency key rejected, empty and inclusive-upper periods rejected (the 10 scenarios already verified by hand against `data-model.md`)
 - [ ] T011 Create migration `src/db/migrations/001_init.ts` with all tables, `btree_gist`, the two exclusion constraints, the period CHECK and the unavailability exclusion constraints exactly as in `data-model.md`
