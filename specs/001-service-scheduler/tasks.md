@@ -27,7 +27,7 @@
 **Purpose**: Schema, shared domain primitives, API skeleton and observability. No user story can start before this is done.
 
 - [x] T006 Write failing config tests in `tests/unit/config.test.ts` (missing or invalid env vars are rejected at startup)
-- [ ] T007 Implement `src/config.ts` with Zod-validated environment config
+- [x] T007 Implement `src/config.ts` with Zod-validated environment config
 - [ ] T008 Add Kysely instance, generated or hand-written table types and a migrate runner in `src/db/index.ts`, `src/db/types.ts`, `src/db/migrate.ts`
 - [ ] T009 Add Testcontainers helper `tests/integration/helpers/db.ts` (start Postgres, run migrations, truncate between tests)
 - [ ] T010 Remove `passWithNoTests` from `vitest.config.ts`, then write failing integration test `tests/integration/schema.constraints.test.ts` using Testcontainers: overlapping bay rejected, overlapping technician rejected, back-to-back allowed, cancelled frees the slot, duplicate idempotency key rejected, empty and inclusive-upper periods rejected (the 10 scenarios already verified by hand against `data-model.md`)
