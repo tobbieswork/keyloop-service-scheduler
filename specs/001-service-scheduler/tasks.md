@@ -14,7 +14,7 @@
 
 **Purpose**: Project skeleton and tooling
 
-- [ ] T001 Create the project skeleton per plan.md: `package.json` (scripts: dev, build, start, migrate, seed, test, test:concurrency, lint, typecheck), `tsconfig.json` (strict), `.nvmrc` (24), `src/` and `tests/` folders
+- [x] T001 Create the project skeleton per plan.md: `package.json` (scripts: dev, build, start, migrate, seed, test, test:concurrency, lint, typecheck), `tsconfig.json` (strict), `.nvmrc` (24), `src/` and `tests/` folders
 - [ ] T002 Install pinned dependencies in `package.json`: fastify, zod, fastify-type-provider-zod, @fastify/swagger, kysely, pg, pino, prom-client, @opentelemetry/sdk-node and instrumentations; dev: typescript, tsx, vitest, testcontainers, @testcontainers/postgresql, eslint, prettier, @redocly/cli
 - [ ] T003 [P] Configure ESLint and Prettier in `eslint.config.js` and `.prettierrc`
 - [ ] T004 [P] Add `docker-compose.yml` (Postgres 16 with healthcheck) and `.env.example` (no real secrets)

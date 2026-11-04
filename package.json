@@ -1,0 +1,25 @@
+{
+  "name": "keyloop-service-scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified Service Scheduler: books service appointments only when a bay and a qualified technician are free (Keyloop Scenario A)",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/db/seed.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:concurrency": "vitest run --project integration tests/integration/concurrency.test.ts",
+    "lint": "eslint .",
+    "lint:api": "redocly lint specs/001-service-scheduler/contracts/openapi.yaml --config specs/001-service-scheduler/contracts/redocly.yaml",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  }
+}
