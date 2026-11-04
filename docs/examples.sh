@@ -87,7 +87,12 @@ step "Block a technician for two hours later in the day (US5)"
 END=$(node -e "console.log(new Date(Date.parse('$LATE') + 2 * 3600e3).toISOString())")
 BLOCK=$(jq -nc --arg s "$LATE" --arg e "$END" '{startTime:$s,endTime:$e,reason:"SAMPLE: training course"}')
 call POST "/technicians/$LONDON_TECH_1/unavailability" "$BLOCK"
-step "Overlapping that block again: 409 UNAVAILABILITY_OVERLAP"
+step "List the technician's blocks, then remove the one just created (it frees the time again)"
+call GET "/technicians/$LONDON_TECH_1/unavailability" ""
+BLOCK_ID=$(echo "$LAST_BODY" | jq -r --arg s "$LATE" 'map(select(.startTime == $s)) | .[0].id')
+call DELETE "/technicians/$LONDON_TECH_1/unavailability/$BLOCK_ID" ""
+step "Block it again, then try to overlap it: 409 UNAVAILABILITY_OVERLAP"
+call POST "/technicians/$LONDON_TECH_1/unavailability" "$BLOCK"
 call POST "/technicians/$LONDON_TECH_1/unavailability" "$BLOCK"
 step "Blocking over a confirmed appointment: 409 RESOURCE_HAS_APPOINTMENTS"
 OVER=$(jq -nc --arg s "$FIRST" --arg e "$(node -e "console.log(new Date(Date.parse('$FIRST') + 3600e3).toISOString())")" '{startTime:$s,endTime:$e,reason:"SAMPLE"}')

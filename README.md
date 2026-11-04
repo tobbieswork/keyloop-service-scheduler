@@ -13,15 +13,16 @@ service duration**, and stores an appointment linking customer, vehicle, technic
 
 ## What it does
 
-|              | Endpoint                                                                  | Notes                                                                                                                                                                                             |
-| ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Book         | `POST /appointments`                                                      | The **system** assigns bay and technician. Needs an `Idempotency-Key` header. `201` created, `200` replay, `409` no capacity (with up to 5 alternative slots), `422` business rule, `404`, `400`. |
-| Availability | `GET /availability?dealershipId&serviceTypeId&date`                       | Every bookable 15-minute start on that local date. Uses the same rules as booking.                                                                                                                |
-| Read         | `GET /appointments/{id}`                                                  | Includes cancelled ones.                                                                                                                                                                          |
-| Cancel       | `POST /appointments/{id}/cancel`                                          | Idempotent. The record is kept and the place is freed.                                                                                                                                            |
-| Block        | `POST /bays/{id}/unavailability`, `POST /technicians/{id}/unavailability` | Maintenance, leave, off shift. Refused if it would overlap a confirmed appointment.                                                                                                               |
-| Reference    | `GET /dealerships`, `GET /service-types`                                  |                                                                                                                                                                                                   |
-| Operations   | `GET /health`, `GET /ready`, `GET /metrics`                               | Liveness, readiness (checks the database), Prometheus.                                                                                                                                            |
+|                        | Endpoint                                                                  | Notes                                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Book                   | `POST /appointments`                                                      | The **system** assigns bay and technician. Needs an `Idempotency-Key` header. `201` created, `200` replay, `409` no capacity (with up to 5 alternative slots), `422` business rule, `404`, `400`. |
+| Availability           | `GET /availability?dealershipId&serviceTypeId&date`                       | Every bookable 15-minute start on that local date. Uses the same rules as booking.                                                                                                                |
+| Read                   | `GET /appointments/{id}`                                                  | Includes cancelled ones.                                                                                                                                                                          |
+| Cancel                 | `POST /appointments/{id}/cancel`                                          | Idempotent. The record is kept and the place is freed.                                                                                                                                            |
+| Block                  | `POST /bays/{id}/unavailability`, `POST /technicians/{id}/unavailability` | Maintenance, leave, off shift. Refused if it would overlap a confirmed appointment (`409`) or another block (`409`).                                                                              |
+| List and remove blocks | `GET` the same URLs; `DELETE .../unavailability/{blockId}`                | Earliest first; `204` on removal; a block cannot be removed through the wrong resource or kind.                                                                                                   |
+| Reference              | `GET /dealerships`, `GET /service-types`                                  |                                                                                                                                                                                                   |
+| Operations             | `GET /health`, `GET /ready`, `GET /metrics`                               | Liveness, readiness (checks the database), Prometheus.                                                                                                                                            |
 
 ## Build, run and test
 
@@ -103,7 +104,7 @@ docs/              system design, cURL examples, video script
 
 ## Results
 
-- **Tests:** 500 passing: 439 backend (197 unit, the rest integration, contract, concurrency and
+- **Tests:** 522 passing: 461 backend (197 unit, the rest integration, contract, concurrency and
   performance) and 61 frontend.
 - **Performance** at 50 concurrent requests on a laptop, against targets set in the plan: booking
   p95 **125 ms** (target 300 ms); availability p95 **31 ms** (target 200 ms).
@@ -118,7 +119,7 @@ the whole occupied period must fit inside one day's working hours; cancelling is
 
 Limitations, stated plainly: no authentication or rate limiting; no dealership holidays; a block over
 an existing appointment is refused rather than cancelling it; alternatives are the _earliest_ free slots,
-not the nearest to the requested time; there is no endpoint to list or remove blocks; tracing is manual
+not the nearest to the requested time; tracing is manual
 spans only (automatic HTTP and database spans need an ESM loader hook, see the design document).
 
 ## AI Collaboration Narrative
@@ -172,6 +173,6 @@ have seen it fail and pass.
 
 ### Quality
 
-439 tests, strict TypeScript, ESLint, Prettier, a linted OpenAPI contract, measured performance, and a
+522 tests, strict TypeScript, ESLint, Prettier, a linted OpenAPI contract, measured performance, and a
 log (`AI_LOG.md`) of every meaningful interaction, including what the AI got wrong. The places I am
 less sure of are listed under limitations.

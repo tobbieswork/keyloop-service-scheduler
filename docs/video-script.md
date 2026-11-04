@@ -57,6 +57,5 @@ Pick two or three. Facts are in `AI_LOG.md`.
 ## 7:30 to 8:00 Close
 
 - Limitations, honestly: no auth, no holidays, a 409 is possible if resources stay locked for a full
-  second, alternatives are earliest not nearest. What I would do next: a thin frontend, auth, listing and
-  removing blocks, automatic tracing.
+  second, alternatives are earliest not nearest. What I would do next: auth, customer search, automatic tracing.
 - Thank you.

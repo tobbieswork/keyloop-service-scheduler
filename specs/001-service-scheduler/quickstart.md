@@ -35,6 +35,6 @@ Each is exercised by `bash docs/examples.sh` and by automated tests.
 6. **Availability (US2)**: `GET /availability`. Booked times disappear; the list agrees with what booking accepts.
 7. **Concurrency (US3)**: `npm run test:concurrency`. Exactly one `201` for the last slot, all others `409`.
 8. **Cancel (US4)**: `POST /appointments/{id}/cancel` (twice is fine), then book the same slot again. Expect `201`.
-9. **Block (US5)**: `POST /technicians/{id}/unavailability`. Booking and availability then avoid that time; overlapping a confirmed appointment gives `409 RESOURCE_HAS_APPOINTMENTS`, overlapping another block gives `409 UNAVAILABILITY_OVERLAP`.
+9. **Block (US5)**: `POST /technicians/{id}/unavailability`. Booking and availability then avoid that time; overlapping a confirmed appointment gives `409 RESOURCE_HAS_APPOINTMENTS`, overlapping another block gives `409 UNAVAILABILITY_OVERLAP`. `GET` the same URL lists the blocks (earliest first); `DELETE .../unavailability/{blockId}` removes one (`204`) and gives the time back.
 10. **Business rules**: outside working hours gives `422 OUTSIDE_WORKING_HOURS` (with the reason), a start in the past gives `422 START_IN_PAST`, malformed input gives `400 VALIDATION_ERROR`.
 11. **Observability**: send `x-request-id: demo-1`, find `demo-1` in the logs and in the response header, and see the booking counters at `/metrics`.

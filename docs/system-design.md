@@ -227,7 +227,7 @@ and its capacity check must yield a replay, never a false 409.
 
 ## 9. Testing strategy
 
-500 automated tests: 439 for the backend (unit, integration against a real PostgreSQL, contract
+522 automated tests: 461 for the backend (unit, integration against a real PostgreSQL, contract
 against the OpenAPI file, concurrency, performance smoke) and 61 for the UI. Rules the project followed:
 
 - **Tests first.** Each task's tests were written and seen failing before the code.
@@ -264,7 +264,6 @@ The brief asks for one layer in depth; the backend is that layer. A small React 
   the whole 1 second budget, although capacity may exist. Nothing is double-booked, and the response
   offers alternatives.
 - Alternatives are the **earliest** slots in time order, not the nearest to the requested time.
-- No endpoint lists or removes blocks.
 - Single database node; no authentication; no rate limiting.
 - The booking service imports the API layer's error type (a small layering shortcut).
 
