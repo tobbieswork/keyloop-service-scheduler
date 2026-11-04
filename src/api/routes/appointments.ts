@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { Db } from '../../db/index.js';
 import { findAppointmentById } from '../../db/repositories/appointments.js';
 import type { BookingService } from '../../services/booking.js';
+import type { CancelService } from '../../services/cancel.js';
 import { AppError } from '../errors.js';
 import {
   appointmentSchema,
@@ -15,6 +16,7 @@ import {
 export interface AppointmentRouteDeps {
   db: Db;
   booking: BookingService;
+  cancel: CancelService;
 }
 
 export function registerAppointmentRoutes(app: FastifyInstance, deps: AppointmentRouteDeps): void {
@@ -49,6 +51,18 @@ export function registerAppointmentRoutes(app: FastifyInstance, deps: Appointmen
       }
       return reply.status(201).send(dto);
     },
+  );
+
+  typed.post(
+    '/appointments/:id/cancel',
+    {
+      schema: {
+        summary: 'Cancel an appointment (idempotent; the record is kept)',
+        params: idParamsSchema,
+        response: { 200: appointmentSchema },
+      },
+    },
+    async (request) => toAppointmentDto(await deps.cancel.cancel(request.params.id, request.log)),
   );
 
   typed.get(

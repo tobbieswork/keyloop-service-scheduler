@@ -99,7 +99,7 @@
 
 - [x] T045 [US4] Write failing integration tests `tests/integration/cancel.test.ts`: cancel then rebook the same slot succeeds; cancelling twice returns the same cancelled record; cancelled appointment is still retrievable; unknown ID gives 404
 - [x] T046 [P] [US4] Write failing contract test for `POST /appointments/{id}/cancel`
-- [ ] T047 [US4] Implement `src/services/cancel.ts` and the cancel route in `src/api/routes/appointments.ts`
+- [x] T047 [US4] Implement `src/services/cancel.ts` and the cancel route in `src/api/routes/appointments.ts`
 
 ---
 

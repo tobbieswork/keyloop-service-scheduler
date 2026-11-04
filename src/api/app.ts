@@ -14,6 +14,7 @@ import { createMetrics, type Metrics } from '../observability/metrics.js';
 import { registerObservability } from '../observability/plugin.js';
 import { createAvailabilityService } from '../services/availability.js';
 import { createBookingService } from '../services/booking.js';
+import { createCancelService } from '../services/cancel.js';
 import { registerErrorHandling } from './errors.js';
 import { registerAppointmentRoutes } from './routes/appointments.js';
 import { registerAvailabilityRoutes } from './routes/availability.js';
@@ -93,7 +94,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const clock = deps.clock ?? (() => new Date());
   const availability = createAvailabilityService({ db, metrics, clock });
   const booking = createBookingService({ db, metrics, clock, availability });
-  registerAppointmentRoutes(app, { db, booking });
+  registerAppointmentRoutes(app, { db, booking, cancel: createCancelService({ db, clock }) });
   registerAvailabilityRoutes(app, { db, availability });
 
   return app;
