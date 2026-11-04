@@ -1,4 +1,5 @@
-import { trace } from '@opentelemetry/api';
+import { context, trace } from '@opentelemetry/api';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
@@ -267,12 +268,15 @@ describe('metrics', () => {
 describe('tracing: withSpan', () => {
   const exporter = new InMemorySpanExporter();
   beforeAll(() => {
+    // NodeSDK registers this in the real server; a bare test provider needs it for parent-child spans.
+    context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
     trace.setGlobalTracerProvider(
-      new TracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] }),
+      new TracerProvider({ spanProcessors: [new SimpleSpanProcessor({ exporter })] }),
     );
   });
   afterAll(() => {
     trace.disable();
+    context.disable();
   });
 
   it('records a finished span with the given name and attributes', async () => {
