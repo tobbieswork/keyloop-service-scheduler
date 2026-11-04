@@ -26,6 +26,7 @@ paths:
         - { name: serviceTypeId, in: query, required: true, schema: { type: string, format: uuid } }
         - { name: date, in: query, required: true, description: Date in the dealership's local time, schema: { type: string, format: date } }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '200':
           description: Possibly empty list of start times
           content:
@@ -52,6 +53,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/BookingRequest' }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '201':
           description: Confirmed
           content:
@@ -77,6 +79,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '200':
           description: The appointment, including cancelled ones
           content:
@@ -91,6 +94,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '200':
           description: Cancelled appointment
           content:
@@ -110,6 +114,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UnavailabilityRequest' }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '201':
           description: Created
           content:
@@ -131,6 +136,7 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/UnavailabilityRequest' }
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '201':
           description: Created
           content:
@@ -145,6 +151,7 @@ paths:
       operationId: listDealerships
       summary: List dealerships (reference data for clients)
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '200':
           description: Dealerships
           content:
@@ -157,6 +164,7 @@ paths:
       operationId: listServiceTypes
       summary: List service types (reference data for clients)
       responses:
+        default: { $ref: '#/components/responses/Error' }
         '200':
           description: Service types
           content:
@@ -169,20 +177,39 @@ paths:
       operationId: getHealth
       summary: Liveness
       responses:
-        '200': { description: Process is up }
+        default: { $ref: '#/components/responses/Error' }
+        '200':
+          description: Process is up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Status' }
   /ready:
     get:
       operationId: getReadiness
       summary: Readiness (database reachable)
       responses:
-        '200': { description: Ready }
-        '503': { description: Database unreachable }
+        default: { $ref: '#/components/responses/Error' }
+        '200':
+          description: Ready
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Status' }
+        '503':
+          description: Database unreachable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Status' }
   /metrics:
     get:
       operationId: getMetrics
       summary: Prometheus metrics
       responses:
-        '200': { description: Text exposition format }
+        default: { $ref: '#/components/responses/Error' }
+        '200':
+          description: Text exposition format
+          content:
+            text/plain:
+              schema: { type: string }
 components:
   responses:
     Error:
@@ -191,6 +218,11 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
   schemas:
+    Status:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok, ready, unavailable] }
     Slot:
       type: object
       required: [startTime, endTime]
