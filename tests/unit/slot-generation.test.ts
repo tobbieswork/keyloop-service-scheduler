@@ -130,7 +130,9 @@ describe('generateSlots: booked time removes the starts it overlaps', () => {
     });
     expect(result).not.toContain('09:30');
     expect(result).not.toContain('09:15');
-    expect(result).not.toContain('10:15');
+    // These two still work, each because one particular bay is free for the whole 60 minutes:
+    expect(result).toContain('08:15'); // bay B (its booking starts later at 10:00)
+    expect(result).toContain('10:15'); // bay A (its booking ended at 10:00)
   });
 
   it('needs ONE technician free for the whole period too', () => {

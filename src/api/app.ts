@@ -12,9 +12,11 @@ import type { Db } from '../db/index.js';
 import { observabilityServerOptions } from '../observability/logger.js';
 import { createMetrics, type Metrics } from '../observability/metrics.js';
 import { registerObservability } from '../observability/plugin.js';
+import { createAvailabilityService } from '../services/availability.js';
 import { createBookingService } from '../services/booking.js';
 import { registerErrorHandling } from './errors.js';
 import { registerAppointmentRoutes } from './routes/appointments.js';
+import { registerAvailabilityRoutes } from './routes/availability.js';
 
 export interface AppDeps {
   config: Config;
@@ -91,6 +93,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const clock = deps.clock ?? (() => new Date());
   const booking = createBookingService({ db, metrics, clock });
   registerAppointmentRoutes(app, { db, booking });
+  registerAvailabilityRoutes(app, {
+    db,
+    availability: createAvailabilityService({ db, metrics, clock }),
+  });
 
   return app;
 }

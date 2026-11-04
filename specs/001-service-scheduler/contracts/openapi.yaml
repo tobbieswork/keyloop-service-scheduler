@@ -40,7 +40,6 @@ paths:
                     items: { $ref: '#/components/schemas/Slot' }
         '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
   /appointments:
     post:
       operationId: createAppointment
