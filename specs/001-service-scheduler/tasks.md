@@ -83,13 +83,13 @@
 
 **Purpose**: Exactly one of many concurrent requests for the last slot succeeds; the rest get 409 with alternatives. Placed after US2 because FR-009 (alternatives) reuses the slot logic.
 
-- [ ] T038 [US3] Write failing concurrency test `tests/integration/concurrency.test.ts`: N parallel requests (N=20, different idempotency keys) for the last slot through the real API give exactly one 201, the rest 409, and exactly one stored appointment
-- [ ] T039 [P] [US3] Write failing test for concurrent requests with the SAME idempotency key: one appointment, every caller gets the same appointment ID
-- [ ] T040 [P] [US3] Write failing tests for bounded retry: a constraint violation (`23P01`) triggers at most 3 attempts, recomputing the choice each time, then returns 409
-- [ ] T041 [P] [US3] Write failing tests for alternatives: a 409 includes up to 5 slots in time order, from the requested day first and then the next 7 days; when the requested day is full but a later day in the window has room, alternatives come from that later day; empty only when nothing is free in the whole 8-day window
-- [ ] T042 [US3] Implement bounded retry and `23P01` handling in `src/services/booking.ts`, with a retry counter metric
-- [ ] T043 [US3] Add alternatives to the conflict response using `src/services/availability.ts`
-- [ ] T044 [US3] Run `npm run test:concurrency` (script added in T001) 20 times in a row to check for flakiness. Then remove the exclusion constraints and confirm the concurrency test fails through the API, restore them, and record both results in `AI_LOG.md`
+- [x] T038 [US3] Write failing concurrency test `tests/integration/concurrency.test.ts`: N parallel requests (N=20, different idempotency keys) for the last slot through the real API give exactly one 201, the rest 409, and exactly one stored appointment
+- [x] T039 [P] [US3] Write failing test for concurrent requests with the SAME idempotency key: one appointment, every caller gets the same appointment ID
+- [x] T040 [P] [US3] Write failing tests for bounded retry: a constraint violation (`23P01`) triggers at most 3 attempts, recomputing the choice each time, then returns 409
+- [x] T041 [P] [US3] Write failing tests for alternatives: a 409 includes up to 5 slots in time order, from the requested day first and then the next 7 days; when the requested day is full but a later day in the window has room, alternatives come from that later day; empty only when nothing is free in the whole 8-day window
+- [x] T042 [US3] Implement bounded retry and `23P01` handling in `src/services/booking.ts`, with a retry counter metric
+- [x] T043 [US3] Add alternatives to the conflict response using `src/services/availability.ts`
+- [x] T044 [US3] Run `npm run test:concurrency` (script added in T001) 20 times in a row to check for flakiness. Then remove the exclusion constraints and confirm the concurrency test fails through the API, restore them, and record both results in `AI_LOG.md`
 
 ---
 
