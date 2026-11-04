@@ -5,3 +5,5 @@ package-lock.json
 .specify
 .claude
 specs
+frontend/dist
+frontend/node_modules

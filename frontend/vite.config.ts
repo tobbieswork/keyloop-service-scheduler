@@ -6,7 +6,11 @@ import { defineConfig } from 'vite';
 // scheduler backend with the `/api` prefix removed, so the backend needs no CORS configuration.
 const backend = process.env['BACKEND_URL'] ?? 'http://localhost:3000';
 const proxy = {
-  '/api': { target: backend, changeOrigin: true, rewrite: (path: string) => path.replace(/^\/api/, '') },
+  '/api': {
+    target: backend,
+    changeOrigin: true,
+    rewrite: (path: string) => path.replace(/^\/api/, ''),
+  },
 };
 
 export default defineConfig({

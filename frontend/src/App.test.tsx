@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 import { App } from './App';
 import {
   ApiError,
@@ -62,8 +62,10 @@ const demoCustomers = [
   { id: 'c-b', name: 'SAMPLE Customer B', vehicles: [{ id: 'v-b1', label: 'SAMPLE SUV' }] },
 ];
 
-function fakeApi(over: Partial<ApiClient> = {}) {
-  const api = {
+type MockedApi = { [K in keyof ApiClient]: Mock<ApiClient[K]> };
+
+function fakeApi(over: Partial<ApiClient> = {}): MockedApi {
+  const api: ApiClient = {
     dealerships: vi.fn(async () => [london, newYork]),
     serviceTypes: vi.fn(async () => [brakes, oil]),
     availability: vi.fn(async () => [slot('08:00'), slot('09:00'), slot('10:15')]),
@@ -72,8 +74,8 @@ function fakeApi(over: Partial<ApiClient> = {}) {
       appointment({ status: 'cancelled', cancelledAt: '2030-03-04T09:05:00.000Z' }),
     ),
     ...over,
-  } satisfies ApiClient;
-  return api;
+  };
+  return api as MockedApi;
 }
 
 let keyCounter = 0;
