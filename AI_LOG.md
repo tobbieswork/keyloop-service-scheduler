@@ -193,3 +193,16 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **My decision:** TBD
 - **Open decision for the owner:** keep tracing as manual spans only (current), or invest in the loader hook for automatic HTTP and database spans? The hook adds start-up complexity, and the Prometheus histogram plus request-ID logs already give request-level visibility.
 - **Verified by:** perf test (3 tests) with numbers printed; `examples.sh` run 3 times in a row against a real Postgres with every status code matching the documented behaviour; full suite 439 tests, typecheck, ESLint, Prettier and contract lint clean; empty-body hook broken on purpose (4 existing tests fail).
+
+### 2026-11-04: Submission documents (T054, T057, T059, T061)
+
+- **Phase:** documentation and final verification
+- **Asked:** continue autonomously: system design document, README with the AI narrative, video script, final verification
+- **AI produced:** `docs/system-design.md` (three Mermaid diagrams, correctness design, technology table, observability, limitations, GenAI section), a rewritten README, an updated quickstart that matches the real commands, `docs/video-script.md`, and a final run of everything.
+- **Problem / gap:**
+  1. The first draft of the design document overreached in two places: it said Node/TypeScript was "required by the brief" (it was the owner's choice; the brief prescribes nothing), and it said the owner "discarded" the older project (they chose a fresh repository; the old folder was left untouched). Both were corrected on re-reading.
+  2. The README draft claimed the AI "never wrote implementation before a failing test" and that the owner "can explain any line". The first is false (the booking-metrics tests came after the code and were validated afterwards by breaking it) and the second is not the AI's to assert. Both were rewritten.
+  3. All three Mermaid diagrams were rendered with the real renderer rather than judged by eye.
+  4. The GenAI section, the README narrative and the video script are DRAFTS written from this log and the commit history; each carries a comment asking the owner to put it in their own words.
+- **My decision:** TBD
+- **Verified by:** typecheck, ESLint, Prettier, contract lint and the production build all clean; `npm audit` for production dependencies reports 0 vulnerabilities; `npm test` 439 passing (197 unit); every number quoted in the README was re-measured.
