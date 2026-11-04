@@ -1,0 +1,252 @@
+openapi: 3.0.3
+info:
+  title: Unified Service Scheduler API
+  version: 0.1.0-draft
+  description: |
+    Draft contract. Reviewed by the owner before implementation.
+    No authentication in v1 (documented out of scope). All data in examples is sample data.
+servers:
+  - url: http://localhost:3000
+paths:
+  /availability:
+    get:
+      summary: List bookable start times for a service type on a date
+      parameters:
+        - { name: dealershipId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: serviceTypeId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: date, in: query, required: true, description: Date in the dealership's local time, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Possibly empty list of start times
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [slots]
+                properties:
+                  slots:
+                    type: array
+                    items: { $ref: '#/components/schemas/Slot' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /appointments:
+    post:
+      summary: Book an appointment (system assigns bay and technician)
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookingRequest' }
+      responses:
+        '201':
+          description: Confirmed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+        '200':
+          description: Replay of an earlier request with the same key and body. Header Idempotent-Replayed is true.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409':
+          description: No bay or no qualified technician free. Includes alternative slots.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConflictError' }
+        '422': { $ref: '#/components/responses/Error' }
+  /appointments/{id}:
+    get:
+      summary: Retrieve an appointment
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: The appointment, including cancelled ones
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+        '404': { $ref: '#/components/responses/Error' }
+  /appointments/{id}/cancel:
+    post:
+      summary: Cancel an appointment (idempotent; the record is kept)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Cancelled appointment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+        '404': { $ref: '#/components/responses/Error' }
+  /bays/{id}/unavailability:
+    post:
+      summary: Mark a bay unavailable for a time range
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UnavailabilityRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Unavailability' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /technicians/{id}/unavailability:
+    post:
+      summary: Mark a technician unavailable for a time range
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UnavailabilityRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Unavailability' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /dealerships:
+    get:
+      summary: List dealerships (reference data for clients)
+      responses:
+        '200':
+          description: Dealerships
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Dealership' }
+  /service-types:
+    get:
+      summary: List service types (reference data for clients)
+      responses:
+        '200':
+          description: Service types
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ServiceType' }
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200': { description: Process is up }
+  /ready:
+    get:
+      summary: Readiness (database reachable)
+      responses:
+        '200': { description: Ready }
+        '503': { description: Database unreachable }
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200': { description: Text exposition format }
+components:
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Slot:
+      type: object
+      required: [startTime, endTime]
+      properties:
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time, description: Service end including buffer }
+    BookingRequest:
+      type: object
+      required: [customerId, vehicleId, serviceTypeId, dealershipId, startTime]
+      properties:
+        customerId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time, description: ISO 8601 with offset; 15-minute boundary in dealership local time }
+    Appointment:
+      type: object
+      required: [id, customerId, vehicleId, serviceTypeId, dealershipId, bayId, technicianId, startTime, serviceEndTime, occupiedUntil, status]
+      properties:
+        id: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        bayId: { type: string, format: uuid }
+        technicianId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        serviceEndTime: { type: string, format: date-time }
+        occupiedUntil: { type: string, format: date-time, description: Service end plus buffer }
+        status: { type: string, enum: [confirmed, cancelled] }
+        cancelledAt: { type: string, format: date-time, nullable: true }
+    UnavailabilityRequest:
+      type: object
+      required: [startTime, endTime, reason]
+      properties:
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        reason: { type: string, maxLength: 200 }
+    Unavailability:
+      type: object
+      required: [id, resourceId, startTime, endTime, reason]
+      properties:
+        id: { type: string, format: uuid }
+        resourceId: { type: string, format: uuid }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        reason: { type: string }
+    Dealership:
+      type: object
+      required: [id, name, timeZone]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        timeZone: { type: string, example: Europe/London }
+    ServiceType:
+      type: object
+      required: [id, name, durationMinutes, bufferMinutes]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        durationMinutes: { type: integer }
+        bufferMinutes: { type: integer }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR, NOT_FOUND, SLOT_UNAVAILABLE, OUTSIDE_WORKING_HOURS, START_IN_PAST, IDEMPOTENCY_KEY_REUSED, VEHICLE_CUSTOMER_MISMATCH, RESOURCE_HAS_APPOINTMENTS, INTERNAL_ERROR]
+            message: { type: string }
+            requestId: { type: string }
+            details: { type: object, additionalProperties: true }
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            alternatives:
+              type: array
+              maxItems: 5
+              items: { $ref: '#/components/schemas/Slot' }

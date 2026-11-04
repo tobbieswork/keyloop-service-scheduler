@@ -30,3 +30,11 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Problem / gap:** Q3 (resource availability): AI recommended "opening hours only" to keep scope small
 - **My decision:** Q1 accepted AI's recommendation (auto-assign). Q2 accepted (per-type buffer). Q3 overruled: chose per-resource unavailability for realism, accepting more schema and tests. Q4 accepted (idempotency key). Q5 accepted (least-booked, ties by lowest ID)
 - **Verified by:** spec updated (FR-015, new entity); reviewed in git diff
+
+### 2026-11-04: Technical plan
+- **Phase:** design
+- **Asked:** run /speckit-plan using my defaults: Fastify, Kysely + SQL migrations, transaction + Postgres exclusion constraint with bounded retry
+- **AI produced:** plan.md, research.md (11 decisions with alternatives), data-model.md, contracts/openapi.yaml, quickstart.md
+- **Problem / gap:** AI added choices beyond my defaults: Vitest, Testcontainers, OpenTelemetry, Zod, "whole service must fit in one day's opening hours", and rejecting (409) an unavailability period that overlaps existing appointments. Also found that an appointment-only exclusion constraint cannot cover unavailability periods (race), so it proposed row locks FOR UPDATE on the chosen bay and technician
+- **My decision:** TBD (owner to review and accept or change each extra choice)
+- **Verified by:** TBD. Only the OpenAPI YAML was parse-checked; the SQL in data-model.md has not been run yet
