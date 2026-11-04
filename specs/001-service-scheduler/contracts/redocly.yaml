@@ -1,0 +1,6 @@
+extends:
+  - recommended
+rules:
+  # Health, readiness, metrics and the two reference-data lists have no client-error case.
+  # Adding a 4XX would document behaviour the service does not have.
+  operation-4xx-response: off

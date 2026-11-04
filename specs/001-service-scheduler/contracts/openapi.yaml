@@ -2,11 +2,19 @@ openapi: 3.0.3
 info:
   title: Unified Service Scheduler API
   version: 0.1.0-draft
+  license:
+    name: Proprietary (assessment submission)
+    url: https://github.com/tobbieswork/keyloop-service-scheduler
   description: |
     Draft contract. Reviewed by the owner before implementation.
     No authentication in v1 (documented out of scope). All data in examples is sample data.
 servers:
-  - url: http://localhost:3000
+  - url: '{scheme}://{host}:{port}'
+    description: Local development by default
+    variables:
+      scheme: { default: http, enum: [http, https] }
+      host: { default: localhost }
+      port: { default: '3000' }
 security: []   # No authentication in v1 (out of scope, see spec Assumptions)
 paths:
   /availability:

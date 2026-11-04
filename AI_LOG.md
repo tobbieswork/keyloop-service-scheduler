@@ -20,8 +20,8 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** set up repo, Spec Kit, constitution draft, AI log template; then start the spec
 - **AI produced:** repo scaffold, 7-principle constitution draft, and specs/001-service-scheduler/spec.md written from the PDF's Scenario A
 - **Problem / gap:** AI found an older project folder (keyloop-unified-service-scheduler) and stopped to ask instead of overwriting. The spec was drafted without a user-written problem statement, so its assumptions are the AI's guesses
-- **My decision:** TBD (owner to review the constitution, spec and assumptions)
-- **Verified by:** TBD
+- **My decision:** Reviewed the constitution draft and the spec's assumptions and accepted them, apart from the answers I gave in the clarify session (next entry)
+- **Verified by:** read the files myself; the spec was then tightened through a 5-question clarify session, with the answers recorded in its Clarifications section
 
 ### 2026-11-04: Clarify session
 - **Phase:** design
@@ -36,7 +36,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** run /speckit-plan using my defaults: Fastify, Kysely + SQL migrations, transaction + Postgres exclusion constraint with bounded retry
 - **AI produced:** plan.md, research.md (11 decisions with alternatives), data-model.md, contracts/openapi.yaml, quickstart.md
 - **Problem / gap:** AI added choices beyond my defaults: Vitest, Testcontainers, OpenTelemetry, Zod, "whole service must fit in one day's opening hours", and rejecting (409) an unavailability period that overlaps existing appointments. Also found that an appointment-only exclusion constraint cannot cover unavailability periods (race), so it proposed row locks FOR UPDATE on the chosen bay and technician
-- **My decision:** TBD (owner to review and accept or change each extra choice)
+- **My decision:** Accepted all the extras: row locks for unavailability, 409 (not auto-cancel) when an unavailability period overlaps existing appointments, whole service within one day's opening hours, and Vitest, Testcontainers, Zod and OpenTelemetry
 - **Verified by:** see the next entry (SQL, concurrency and OpenAPI checks were run afterwards)
 
 ### 2026-11-04: Verify the plan's SQL and contract
@@ -44,6 +44,6 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** re-check the items marked "not yet verified": SQL in data-model.md, Docker daemon, OpenAPI contract
 - **AI produced:** a throwaway Postgres 16 container, 10 SQL scenario checks, a 20-way parallel insert race, and a Redocly lint of the contract
 - **Problem / gap:** the AI's own test harness was wrong three times (a malformed UUID, a failed macOS `sed -i`, then a `head -12` that cut off a constraint and made a CHECK attach to the wrong ALTER). Those runs showed false failures and were discarded. The fix was to extract the SQL block from data-model.md verbatim instead of retyping it. Separately, the contract had 11 lint errors: no explicit `security: []`, despite auth being out of scope, and no `operationId`s
-- **My decision:** TBD (owner to confirm accepting the remaining 7 style warnings)
-- **Verified by:** verbatim doc SQL: 10/10 scenarios behave as designed (overlap rejected on bay and technician, back-to-back allowed, cancel frees the slot, duplicate key rejected, empty and inclusive-upper periods rejected). 20 parallel inserts for one slot: 1 confirmed, 19 rejected by `appointment_no_bay_overlap`. OpenAPI: valid after fix, 0 errors
+- **My decision:** Did not accept the 7 style warnings. Fixed the license and server URL; turned off the "4XX response" rule for the 5 endpoints with no client-error case (health, ready, metrics, two reference lists) rather than document errors the service will never return
+- **Verified by:** verbatim doc SQL: 10/10 scenarios behave as designed (overlap rejected on bay and technician, back-to-back allowed, cancel frees the slot, duplicate key rejected, empty and inclusive-upper periods rejected). 20 parallel inserts for one slot: 1 confirmed, 19 rejected by `appointment_no_bay_overlap`. OpenAPI: valid after fix; 0 errors and 0 warnings after the second pass (with a documented rule exception)
 - **Lesson for the narrative:** a green or red result is only as trustworthy as the test harness. Check that the thing under test is the real artifact
