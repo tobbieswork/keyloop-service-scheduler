@@ -124,55 +124,105 @@ spans only (automatic HTTP and database spans need an ESM loader hook, see the d
 
 ## AI Collaboration Narrative
 
-<!-- DRAFT: the facts below come from AI_LOG.md and the commit history. Put it in your own words
-before submitting, and keep only what you can speak to in the interview. -->
+<!-- SECOND DRAFT, built from the owner's answers, AI_LOG.md and the commit history. Lines marked
+CONFIRM are suggested wording the owner has NOT yet confirmed: keep only what you can say honestly,
+in your own words, then delete this comment. -->
 
-I used Claude Code throughout, and treated it as a fast collaborator whose output is a draft until I
-have seen it fail and pass.
+I used Claude Code throughout. I made the product and design decisions; the AI researched, drafted,
+built and tested. I treated everything it produced as a draft until I had seen it fail and then pass.
 
-### Strategy: I decide, the AI drafts, tests judge
+### How I guided the AI
 
-- **Spec first.** I followed spec-driven development with GitHub Spec Kit: constitution, spec, clarify,
-  plan, tasks, analyze, then code. Tests were written and watched failing before the code they test,
-  and the history shows it (a failing-test commit, then the commit that makes it pass). The exceptions
-  are in the log: for example the booking-metrics tests were written after the code, so they were
-  validated afterwards by deliberately breaking the code.
-- **My decisions, not the AI's.** I chose the scenario, backend first, the stack, and I answered the
-  clarifying questions. On one I **overrode the AI's recommendation**: it suggested keeping resource
-  availability simple, and I chose per-resource unavailability, accepting the extra schema and tests. I
-  also set the rule for alternative slots (up to 5, the requested day first, then the next 7 days) and
-  chose to start a clean repository rather than continue an older half-built one.
-- **Small slices.** One task or small group at a time, reviewed as a diff, committed separately.
+- **I set the scope.** Scenario A, the backend first, and a simple frontend afterwards.
+- **I asked how to work before we started.** Before any code I asked the AI to explain what the
+  assessment is really testing (how I use AI and how I manage it), so I would know what to show. Then
+  I asked whether I could use spec-driven development and which framework to use. We used GitHub Spec
+  Kit: constitution, spec, clarify, plan, tasks, analyze, and only then code.
+- **The decisions were mine.** The AI asked clarifying questions and recommended answers; I made the
+  calls that shaped the product:
+  - I **overrode its recommendation** to keep resource availability simple, and chose per-resource
+    unavailability (maintenance, leave, shifts) and accepted the extra work. CONFIRM: _"Real dealerships
+    have bays under maintenance and technicians on leave, so treating every resource as always free
+    would book work nobody can do."_
+  - I chose to **start a fresh repository** instead of continuing an older half-built one.
+  - I set the **alternatives rule**: when a time is taken, offer up to 5 other slots, the requested day
+    first and then the next 7 days. CONFIRM: _"A customer who cannot get their time should be offered
+    something useful, not a dead end."_
+  - I asked for the missing **user story for blocking resources** to be added to the spec instead of
+    leaving a requirement with no story, and later asked for **list and remove** for those blocks.
+  - I kept the **SAMPLE customer picker** in the UI rather than expose customers through the API.
+    CONFIRM: _"Customer names and contacts are personal data, and the service has no authentication yet."_
+- **I let it work in long stretches and saved my decisions for later.** When I needed a break I told it
+  to keep going and to collect the questions that needed me. Each one waited as a `TBD` in `AI_LOG.md`
+  until I answered them all in one round.
+- **Small slices, tests first.** The history shows a failing-test commit and then the commit that makes
+  it pass. The exceptions are in the log.
 
-### Verification: nothing counts until I have watched it fail
+### How I checked its work
 
-- **Run the claims.** The data-model SQL was run on a real PostgreSQL before any code existed
-  (10 scenarios and a 20-way parallel insert race). The contract is linted. A hands-on run of the
-  compiled service with cURL is part of the process, not an afterthought.
-- **Break the logic.** After each feature I had the code deliberately broken (about 80 mutations) to
-  prove the tests can fail. Where a break passed, either it was masked by another safety layer
-  (recorded honestly) or my test was too weak (and I fixed the test).
-- **Deterministic races.** Rare interleavings are reproduced with small test seams, because a race
-  test that "sometimes fails" proves little. Flakiness was checked by running the concurrency suite
-  20 times in a row.
-- **Cross-check the whole.** `/speckit-analyze` found 14 inconsistencies before any implementation,
-  including a success criterion that contradicted a planned test.
+- **I did not accept "not yet verified".** I asked the AI to re-verify those items. It ran the
+  data-model SQL on a real PostgreSQL, linted the API contract, and later ran the real service.
+- **I read and answered the decision prompts** (what changed, what is the trade-off) instead of
+  approving everything.
+- **I ran the app myself, and it did not start.** `npm run dev` failed for me. I did not paste the error,
+  so the AI reproduced it: it had put that command in the instructions without ever running it.
+- **The AI had to try to break its own work.** About 95 deliberate bugs were introduced to prove the
+  tests can fail. Where one survived, either another safety layer was hiding it (recorded honestly) or
+  the test was too weak (and was fixed).
+- **Rare races were reproduced on purpose**, and the race tests were run 20 times in a row to check
+  they are not flaky.
+- **`/speckit-analyze` found 14 inconsistencies** before any implementation, including a success
+  criterion that contradicted a planned test.
 
 ### Mistakes caught (the useful part)
 
-| What went wrong                                                                                                       | How it was caught                                                      | Outcome                                                                                         |
-| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| The AI's own test harness was wrong three times (a bad UUID, a failed `sed`, a truncated file), giving false failures | Results did not match the SQL being tested                             | Reran against the document's SQL extracted verbatim                                             |
-| The AI wrote a code comment claiming Node's JSON errors quote the request body                                        | A deliberate break survived; a direct probe showed the claim was false | Comment and test corrected; behaviour kept as defence in depth                                  |
-| `FOR UPDATE` row locks made a test deadlock                                                                           | A hung test run                                                        | Diagnosed as a conflict with foreign-key locks; now `FOR NO KEY UPDATE`, with a regression test |
-| A request with the same idempotency key could get a false 409                                                         | Predicted from the code, then reproduced deterministically with a seam | Re-read the key before ever answering 409                                                       |
-| One run in 20 gave a false "no capacity" (5 confirmed, 25 rejected, a place free)                                     | The 20-run flakiness loop                                              | Fixed retry count replaced by a time budget; 20 of 20 clean afterwards                          |
-| Cancelling returned 400 from real clients                                                                             | The hands-on cURL run (every integration test missed it)               | Empty JSON bodies accepted, JSON parser left untouched                                          |
-| Ordinary 409s were recorded as span errors; automatic tracing produced nothing                                        | Reading what the running server actually emitted                       | Expected rejections no longer errors; dead instrumentation removed and documented               |
-| Tests blocked a resource nobody would have chosen, so a bug survived                                                  | Mutation survived                                                      | Tests now block the resource that would be picked first                                         |
+| What went wrong                                                                                                               | How it was caught                                                                             | Outcome                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| The AI's own test harness was wrong three times (a bad UUID, a failed `sed`, a truncated file)                                | Results did not match the SQL being tested                                                    | Reran against the document's SQL extracted verbatim                                                     |
+| The AI wrote a code comment claiming Node's JSON errors quote the request body                                                | A deliberate break survived; a direct probe showed the claim was false                        | Comment and test corrected; behaviour kept as defence in depth                                          |
+| `FOR UPDATE` row locks made a test deadlock                                                                                   | A hung test run                                                                               | Diagnosed as a conflict with foreign-key locks; now `FOR NO KEY UPDATE`, with a regression test         |
+| A request with the same idempotency key could get a false 409                                                                 | Predicted from the code, then reproduced deterministically with a test seam                   | Re-read the key before ever answering 409                                                               |
+| One run in 20 gave a false "no capacity" (5 confirmed, 25 rejected, a place free)                                             | The 20-run flakiness loop                                                                     | Fixed retry count replaced by a time budget; 20 of 20 clean afterwards                                  |
+| Cancelling returned 400 from real clients                                                                                     | The hands-on cURL run (every integration test missed it)                                      | Empty JSON bodies accepted; the JSON parser left untouched                                              |
+| Ordinary 409s were recorded as tracing errors; automatic tracing produced nothing                                             | Reading what the running server actually emitted                                              | Expected rejections no longer errors; dead instrumentation removed and documented                       |
+| Tests blocked a resource nobody would have chosen, so a bug survived                                                          | A deliberate break survived                                                                   | Tests now block the resource that would be picked first                                                 |
+| The UI's list of times vanished on every refresh, the confirmation stayed open after a conflict, phone dropdowns were cut off | A run in a real browser against the real API (58 UI tests with a fake backend had passed)     | Fixed test-first; run again in a browser                                                                |
+| **`npm run dev` did not start**                                                                                               | **I ran it myself**                                                                           | Script order fixed; a deprecation warning removed; a test now fails on any such warning                 |
+| The AI's own mutation script overwrote its uncommitted work (three files shared a name)                                       | Mutations that should apply reported "did not apply", and a line count showed identical files | Recovered from the last commit; the script now keeps full paths and refuses to run on uncommitted files |
+
+### The booking UI
+
+After the backend I asked for a simple frontend. It followed the same method: a short spec, tests first
+against a fake backend, then a run in a real browser against the real API. That run found four problems
+the tests could not see. The UI states its two limits on screen: customers come from a SAMPLE demo
+picker (the API deliberately has no customer-listing endpoint), and the booking list covers one session.
+
+### What I learned
+
+I learned a lot about how a car-service business really runs, with real cases I had not thought about
+before. CONFIRM: keep only the ones you genuinely learned.
+
+- A booking needs **two things at once**: a free bay and a technician with the right skill.
+- **Cleanup time** between jobs takes capacity even though the customer never sees it.
+- "09:00" means the **dealership's local time**, including daylight saving, not the customer's.
+- People click twice and networks retry, so a booking has to be **safe to repeat**.
+- When two customers want the last slot, exactly one must win, and the other should be **offered
+  alternatives**, not an error.
+- Staff leave and bay maintenance **reduce capacity**, and a cancellation should give the place back.
+
+About working with AI, CONFIRM: _"AI is fast, but it states wrong things with confidence, so I do not
+trust a result until I have seen the check fail. The most useful instruction was not 'write more tests'
+but 'try to break your own work'."_
+
+### What I would do differently, and where I am less sure
+
+CONFIRM: _"Because I let the AI work for long stretches, my checking was mostly on behaviour, tests and
+logs, not line by line through the generated code. Next time I would read the key parts, such as the
+booking transaction, with it before moving on."_ The product limits are listed under "Assumptions and
+limitations" above.
 
 ### Quality
 
-523 tests, strict TypeScript, ESLint, Prettier, a linted OpenAPI contract, measured performance, and a
-log (`AI_LOG.md`) of every meaningful interaction, including what the AI got wrong. The places I am
-less sure of are listed under limitations.
+523 tests (462 backend, 61 frontend), strict TypeScript, ESLint, Prettier, a linted OpenAPI contract,
+measured performance, and a log (`AI_LOG.md`) of every meaningful AI interaction, including what the AI
+got wrong.

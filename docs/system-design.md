@@ -269,34 +269,45 @@ The brief asks for one layer in depth; the backend is that layer. A small React 
 
 ## 12. How GenAI was used in the design phase
 
-<!-- DRAFT for the owner to review and put in their own words before submission. Every fact below
-is taken from AI_LOG.md and the commit history. -->
+<!-- SECOND DRAFT, built from the owner's answers, AI_LOG.md and the commit history. CONFIRM lines are
+suggested wording the owner has not yet confirmed. Delete this comment when done. -->
 
 The author used **Claude Code** as a collaborator and followed **spec-driven development** with
-GitHub Spec Kit: a constitution, then a specification, a clarify session, a plan, a task list and a
+GitHub Spec Kit: a constitution, a specification, a clarify session, a plan, a task list and a
 cross-artifact analysis, all committed as the work progressed.
 
-**What the author decided.** The scenario and the backend-first scope; the stack defaults;
-the answers to the five clarifying questions (one of which, per-resource unavailability, overrode
-the AI's recommendation to keep scope small); the decision to start a clean repository instead of
-continuing an older half-built project; and approval of the plan's extra choices.
+**Roles.** The author set the scope and made the decisions. The AI researched the options, drafted
+the documents, and wrote and tested the code. Nothing was accepted on the AI's word alone.
 
-**What the AI contributed.** It drafted the spec, plan, research and contract; compared the options
-for preventing double-booking (application check, row locks, serializable isolation, advisory
-locks, exclusion constraints) and recommended the layered approach; and wrote the tests and code.
+**What the author decided.** The scenario (A) and the backend-first scope; spec-driven development
+with Spec Kit, after first asking the AI to explain what the assessment is really testing; the
+answers to the five clarifying questions, one of which (per-resource unavailability) overrode the AI's
+recommendation to keep scope small; starting a clean repository instead of continuing an older
+half-built project; the alternatives rule (up to 5 slots, the requested day first, then the next 7
+days); adding the missing user story for blocking resources to the spec; later, list and remove for
+those blocks; and keeping a labelled SAMPLE customer picker in the UI. CONFIRM the reasons in the
+README narrative before submitting.
+
+**What the AI contributed.** It drafted the specification, plan, research and contract; compared the
+options for preventing double-booking (an application check, row locks, serializable isolation,
+advisory locks, exclusion constraints) and recommended the layered approach; and wrote the tests and
+the code.
 
 **How the design was verified rather than trusted.**
 
-- The SQL in the data model was run against a real PostgreSQL 16 before any application code
-  existed (10 scenarios, then a 20-way parallel insert race: 1 confirmed, 19 rejected by the
-  constraint). The AI's first test harness had three bugs of its own; those runs were discarded and
-  redone against the document's SQL extracted verbatim.
-- The cross-artifact analysis (`/speckit-analyze`) found 14 issues, including a contradiction
-  between a success criterion and a planned test about alternative slots. The author chose the rule
-  (up to 5 slots, the requested day first, then the next 7 days) and the fixes were applied.
+- The author asked for the items marked "not yet verified" to be re-checked. The SQL in the data
+  model was then run against a real PostgreSQL 16 before any application code existed (10 scenarios,
+  then a 20-way parallel insert race: 1 confirmed, 19 rejected by the constraint). The AI's first
+  test harness had three bugs of its own; those runs were discarded and redone against the
+  document's SQL extracted verbatim.
+- The cross-artifact analysis (`/speckit-analyze`) found 14 issues, including a contradiction between
+  a success criterion and a planned test about alternative slots. The author chose the rule and the
+  fixes were applied.
 - The OpenAPI contract is linted, and a test compares its error codes with the code's status table.
+- The author ran the application and reported that `npm run dev` did not start. The AI had never run
+  that command; it was fixed and the instructions corrected.
 
 **Where the design changed during implementation, and why.** Section 5 lists the lock-mode and
-retry-bound changes. Both came from the AI's own implementation being tested hard (a deadlocked
-test; a flaky false conflict), not from the original plan. They are recorded in `AI_LOG.md`
-together with the AI's mistakes and what caught each one.
+retry-bound changes. Both came from the AI's own implementation being tested hard (a deadlocked test;
+a flaky false conflict), not from the original plan. They are recorded in `AI_LOG.md` together with
+the AI's mistakes and what caught each one.
