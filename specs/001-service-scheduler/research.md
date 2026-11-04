@@ -63,6 +63,7 @@ All technical unknowns are resolved. The stack defaults were confirmed by the ow
 | `NOT_FOUND` | 404 | Referenced dealership, service type, customer, vehicle, appointment, bay or technician does not exist |
 | `SLOT_UNAVAILABLE` | 409 | No bay or no qualified technician free for the whole period |
 | `RESOURCE_HAS_APPOINTMENTS` | 409 | An unavailability period would overlap a confirmed appointment |
+| `UNAVAILABILITY_OVERLAP` | 409 | An unavailability period would overlap an existing one on the same bay or technician |
 | `OUTSIDE_WORKING_HOURS` | 422 | Well-formed, but outside working hours, not on a 15-minute boundary, or not fitting in one day's working hours |
 | `START_IN_PAST` | 422 | Well-formed, but the start time is in the past |
 | `VEHICLE_CUSTOMER_MISMATCH` | 422 | Vehicle does not belong to the customer |

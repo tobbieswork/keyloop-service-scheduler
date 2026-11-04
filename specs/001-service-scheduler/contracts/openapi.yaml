@@ -122,7 +122,6 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
   /technicians/{id}/unavailability:
     post:
       operationId: createTechnicianUnavailability
@@ -144,7 +143,6 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
   /dealerships:
     get:
       operationId: listDealerships
@@ -294,7 +292,7 @@ components:
           properties:
             code:
               type: string
-              enum: [VALIDATION_ERROR, NOT_FOUND, SLOT_UNAVAILABLE, OUTSIDE_WORKING_HOURS, START_IN_PAST, IDEMPOTENCY_KEY_REUSED, VEHICLE_CUSTOMER_MISMATCH, RESOURCE_HAS_APPOINTMENTS, INTERNAL_ERROR]
+              enum: [VALIDATION_ERROR, NOT_FOUND, SLOT_UNAVAILABLE, OUTSIDE_WORKING_HOURS, START_IN_PAST, IDEMPOTENCY_KEY_REUSED, VEHICLE_CUSTOMER_MISMATCH, RESOURCE_HAS_APPOINTMENTS, UNAVAILABILITY_OVERLAP, INTERNAL_ERROR]
             message: { type: string }
             requestId: { type: string }
             details: { type: object, additionalProperties: true }

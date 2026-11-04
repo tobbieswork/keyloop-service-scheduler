@@ -17,6 +17,11 @@ export interface TestApi {
   getAppointment: (id: string) => Promise<LightMyRequestResponse>;
   get: (url: string) => Promise<LightMyRequestResponse>;
   cancel: (id: string) => Promise<LightMyRequestResponse>;
+  block: (
+    kind: 'bay' | 'technician',
+    id: string,
+    body: Record<string, unknown>,
+  ) => Promise<LightMyRequestResponse>;
   availability: (query: {
     dealershipId: string;
     serviceTypeId: string;
@@ -63,6 +68,12 @@ export async function startApi(
     getAppointment: (id) => app.inject({ method: 'GET', url: `/appointments/${id}` }),
     get: (url) => app.inject({ method: 'GET', url }),
     cancel: (id) => app.inject({ method: 'POST', url: `/appointments/${id}/cancel` }),
+    block: (kind, id, body) =>
+      app.inject({
+        method: 'POST',
+        url: `/${kind === 'bay' ? 'bays' : 'technicians'}/${id}/unavailability`,
+        payload: body,
+      }),
     availability: (query) =>
       app.inject({
         method: 'GET',
@@ -83,6 +94,13 @@ export const bookingBody = (
   dealershipId: world.dealershipId,
   startTime,
   ...overrides,
+});
+
+/** A valid unavailability body on Monday 2030-03-04 (London local time equals UTC in winter). */
+export const blockBody = (from: string, to: string, reason = 'SAMPLE maintenance') => ({
+  startTime: monday(from),
+  endTime: monday(to),
+  reason,
 });
 
 /** Monday 2030-03-04 is in winter time, so London local time equals UTC. */
