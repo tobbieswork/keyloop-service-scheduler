@@ -32,7 +32,7 @@
 - [x] T009 Add Testcontainers helper `tests/integration/helpers/db.ts` (start Postgres, run migrations, truncate between tests)
 - [x] T010 Remove `passWithNoTests` from `vitest.config.ts`, then write failing integration test `tests/integration/schema.constraints.test.ts` using Testcontainers: overlapping bay rejected, overlapping technician rejected, back-to-back allowed, cancelled frees the slot, duplicate idempotency key rejected, empty and inclusive-upper periods rejected (the 10 scenarios already verified by hand against `data-model.md`)
 - [x] T011 Create migration `src/db/migrations/001_init.ts` with all tables, `btree_gist`, the two exclusion constraints, the period CHECK and the unavailability exclusion constraints exactly as in `data-model.md`
-- [ ] T012 Add SAMPLE seed data in `src/db/seed.ts`: 2 dealerships in different time zones with weekly hours, bays, technicians with skills, service types (some with buffer), customers and vehicles. Every record name is prefixed `SAMPLE`
+- [x] T012 Add SAMPLE seed data in `src/db/seed.ts`: 2 dealerships in different time zones with weekly hours, bays, technicians with skills, service types (some with buffer), customers and vehicles. Every record name is prefixed `SAMPLE`
 - [ ] T013 [P] Write failing unit tests `tests/unit/time-range.test.ts`: half-open overlap, back-to-back is not overlap, containment, empty range
 - [ ] T014 Implement `src/domain/time-range.ts`
 - [ ] T015 [P] Write failing unit tests `tests/unit/working-hours.test.ts`: dealership-local working hours, 15-minute alignment, whole occupied period inside one day's hours, DST change day, closed weekday
