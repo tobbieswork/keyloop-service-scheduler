@@ -237,3 +237,15 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
   4. The AI's first draft of the list route built its summary by string-replacing another route's summary, which is fragile; replaced with an explicit string.
 - **My decision:** Chose to add these endpoints (the decision round above).
 - **Verified by:** 22 tests red first, then green; 6 deliberate bugs (ownership check removed, list not filtered, list not ordered, delete not deleting, wrong status code, silent success on unknown block), all caught after the ordering test was strengthened; the cURL walk-through run 3 times against a real database (block 201, list 200, delete 204, re-block 201, overlap 409); full suite 522 tests (461 backend, 61 frontend), typecheck, ESLint, Prettier and the contract lint clean.
+
+### 2026-11-04: The owner could not start the dev server
+
+- **Phase:** verification (found by the owner, not by the AI)
+- **Asked:** "Got error when run dev server" (no error text was given, so the AI reproduced it rather than guessing).
+- **AI produced:** a fix to the `dev` script, a fix for a Fastify deprecation warning, and a test that fails on any Fastify deprecation warning.
+- **Problem / gap:**
+  1. **`npm run dev` had never been run.** The script was `tsx --env-file-if-exists=.env watch src/server.ts`, but tsx needs its `watch` command FIRST, so it treated `watch` as a file to run (`ERR_MODULE_NOT_FOUND`). The AI had verified the compiled server, `migrate` and `seed`, and then put `npm run dev` in the README, the quickstart and its instructions to the owner without ever running it. A command that appears in the instructions must be run before the instructions are given. Fixed to `tsx watch --env-file-if-exists=.env src/server.ts`.
+  2. **A deprecation warning had been printing on every start** (`requestIdLogLabel` is removed in Fastify 6). It was visible in earlier server logs and not acted on. A test now builds the whole app and fails on any Fastify deprecation warning; the option was replaced with a `LogController`. The whole test run now shows 0 deprecation warnings.
+  3. **A second auto-mode block, handled the same way as the first:** the AI tried to stop dev servers by port and by process-name pattern, which could have stopped a server the owner had started. It was blocked, not worked around. Instead the AI proved the single leftover process was its own (its PID matched the PID in its own captured log and nothing else was listening), stopped that exact PID, and ran the final check as tracked background tasks on spare ports (3101, 5199) that it stopped by task ID.
+- **My decision:** The owner reported the failure; no decision pending.
+- **Verified by:** reproduced the exact error, fixed it, then started BOTH dev servers (backend and frontend) via `npm run dev` on spare ports with no warnings or errors, the UI's `/api` proxy returning the seeded dealerships from the database; the new test was red before the fix; full suite 523 tests (462 backend, 61 frontend); all ports confirmed free afterwards.

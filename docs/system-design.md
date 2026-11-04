@@ -227,7 +227,7 @@ and its capacity check must yield a replay, never a false 409.
 
 ## 9. Testing strategy
 
-522 automated tests: 461 for the backend (unit, integration against a real PostgreSQL, contract
+523 automated tests: 462 for the backend (unit, integration against a real PostgreSQL, contract
 against the OpenAPI file, concurrency, performance smoke) and 61 for the UI. Rules the project followed:
 
 - **Tests first.** Each task's tests were written and seen failing before the code.

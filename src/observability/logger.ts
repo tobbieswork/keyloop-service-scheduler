@@ -1,4 +1,4 @@
-import type { FastifyServerOptions } from 'fastify';
+import { LogController, type FastifyServerOptions } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 
@@ -59,6 +59,8 @@ export function observabilityServerOptions(level: string, stream?: Writable): Fa
     },
     genReqId: generateRequestId,
     requestIdHeader: false, // genReqId reads the header itself, with validation
-    requestIdLogLabel: 'reqId',
+    // Name the request ID field `reqId` on every log line. (The top-level `requestIdLogLabel`
+    // option is deprecated and will be removed in Fastify 6.)
+    logController: new LogController({ requestIdLogLabel: 'reqId' }),
   };
 }

@@ -104,7 +104,7 @@ docs/              system design, cURL examples, video script
 
 ## Results
 
-- **Tests:** 522 passing: 461 backend (197 unit, the rest integration, contract, concurrency and
+- **Tests:** 523 passing: 462 backend (197 unit, the rest integration, contract, concurrency and
   performance) and 61 frontend.
 - **Performance** at 50 concurrent requests on a laptop, against targets set in the plan: booking
   p95 **125 ms** (target 300 ms); availability p95 **31 ms** (target 200 ms).
@@ -173,6 +173,6 @@ have seen it fail and pass.
 
 ### Quality
 
-522 tests, strict TypeScript, ESLint, Prettier, a linted OpenAPI contract, measured performance, and a
+523 tests, strict TypeScript, ESLint, Prettier, a linted OpenAPI contract, measured performance, and a
 log (`AI_LOG.md`) of every meaningful interaction, including what the AI got wrong. The places I am
 less sure of are listed under limitations.
