@@ -110,3 +110,27 @@ describe('GET /appointments/{id} matches the contract', () => {
     get(malformed);
   });
 });
+
+describe('POST /appointments/{id}/cancel matches the contract', () => {
+  it('200 cancelled, 200 again (idempotent), 404 unknown, 400 malformed', async () => {
+    const world = await createWorld(testDb.db, { withHours: true });
+    const created = (await api.book(bookingBody(world, monday('09:00')))).json();
+    const op = { method: 'POST', path: '/appointments/{id}/cancel' } as const;
+
+    const first = await api.cancel(created.id);
+    expect(first.statusCode).toBe(200);
+    assertMatchesContract(first, op);
+
+    const again = await api.cancel(created.id);
+    expect(again.statusCode).toBe(200);
+    assertMatchesContract(again, op);
+
+    const unknown = await api.cancel('99999999-9999-4999-8999-999999999999');
+    expect(unknown.statusCode).toBe(404);
+    assertMatchesContract(unknown, op);
+
+    const malformed = await api.cancel('not-a-uuid');
+    expect(malformed.statusCode).toBe(400);
+    assertMatchesContract(malformed, op);
+  });
+});

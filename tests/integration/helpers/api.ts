@@ -16,6 +16,7 @@ export interface TestApi {
   book: (body: Record<string, unknown>, key?: string | null) => Promise<LightMyRequestResponse>;
   getAppointment: (id: string) => Promise<LightMyRequestResponse>;
   get: (url: string) => Promise<LightMyRequestResponse>;
+  cancel: (id: string) => Promise<LightMyRequestResponse>;
   availability: (query: {
     dealershipId: string;
     serviceTypeId: string;
@@ -61,6 +62,7 @@ export async function startApi(
       }),
     getAppointment: (id) => app.inject({ method: 'GET', url: `/appointments/${id}` }),
     get: (url) => app.inject({ method: 'GET', url }),
+    cancel: (id) => app.inject({ method: 'POST', url: `/appointments/${id}/cancel` }),
     availability: (query) =>
       app.inject({
         method: 'GET',
