@@ -52,6 +52,12 @@ export interface BookingOutcome {
 export interface BookingTestHooks {
   /** Runs inside the transaction right after the idempotency-key check. */
   afterIdempotencyCheck?: (attempt: number) => Promise<void>;
+  /** Runs inside the transaction once the free candidates are listed, before any lock is taken. */
+  afterCandidatesRead?: (info: {
+    attempt: number;
+    bayIds: string[];
+    technicianIds: string[];
+  }) => Promise<void>;
   /** Runs inside the transaction after the locks and re-check, just before the insert. */
   beforeInsert?: (info: {
     attempt: number;
@@ -70,6 +76,8 @@ export interface BookingServiceDeps {
   testHooks?: BookingTestHooks;
   /** Wait between attempts. Injectable so tests need not sleep. */
   sleep?: (ms: number) => Promise<void>;
+  /** A monotonic clock in milliseconds, for the contention time budget. Injectable for tests. */
+  now?: () => number;
   /** Randomness for the wait between attempts. Injectable for tests. */
   random?: () => number;
 }
@@ -78,8 +86,18 @@ export interface BookingService {
   book(request: BookingRequest, log: FastifyBaseLogger): Promise<BookingOutcome>;
 }
 
-/** A booking is tried at most this many times when other bookings hold the same resources. */
+/**
+ * How many times the database may reject an insert with its exclusion constraint before we give
+ * up. The checks before the insert make this very rare, so it is a safety net, not a plan.
+ */
 export const MAX_ATTEMPTS = 3;
+
+/**
+ * How long a booking keeps trying while free resources exist but other bookings in flight hold
+ * them, or its view of them was stale. Each retry means someone else made progress, so waiting
+ * is right; a request is only told "no capacity" when none is left, or when this budget runs out.
+ */
+export const CONTENTION_BUDGET_MS = 1000;
 
 /** Stable fingerprint of what the caller asked for, to tell a retry from a different request. */
 export function requestHash(r: BookingRequest): string {
@@ -101,7 +119,8 @@ type Attempt =
   | { kind: 'booked'; appointment: AppointmentRecord }
   | { kind: 'existing'; appointment: AppointmentRecord } // another request with this key won
   | { kind: 'full' } //      no free qualified bay or technician at all
-  | { kind: 'contended' }; // free ones exist, but other in-flight bookings hold them
+  | { kind: 'contended' } // free ones exist, but in-flight bookings hold them, or our view was stale
+  | { kind: 'rejected' }; //  the database's exclusion constraint refused the insert
 
 const PG_EXCLUSION_VIOLATION = '23P01';
 const PG_UNIQUE_VIOLATION = '23505';
@@ -121,6 +140,9 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
   const { db, metrics, clock } = deps;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const random = deps.random ?? Math.random;
+  const now = deps.now ?? (() => performance.now());
+  /** Pause before retry number `n`: grows from about 5 ms to about 50 ms, with random jitter. */
+  const backoffMs = (n: number) => Math.min(5 * 2 ** n, 50) * (0.5 + random());
 
   /** Return the stored result of an earlier request with the same key, if it was the same request. */
   function replay(existing: AppointmentRecord, hash: string): BookingOutcome {
@@ -196,6 +218,11 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
           ),
         );
         if (bays.length === 0 || technicians.length === 0) return { kind: 'full' };
+        await deps.testHooks?.afterCandidatesRead?.({
+          attempt: attemptNumber,
+          bayIds: bays.map((b) => b.id),
+          technicianIds: technicians.map((t) => t.id),
+        });
 
         // Take the best candidate that is not already locked by another booking in flight. Never
         // waiting for a lock means two bookings can never wait on each other (no deadlock), and
@@ -207,6 +234,9 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
             break;
           }
         }
+        // No bay of our own means there is nothing to do: do not lock a technician we cannot use,
+        // which would only make other bookings see a technician that looks busy.
+        if (!bayId) return { kind: 'contended' };
         let technicianId: string | undefined;
         for (const technician of technicians) {
           if (await tryLockTechnician(trx, technician.id)) {
@@ -214,7 +244,7 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
             break;
           }
         }
-        if (!bayId || !technicianId) return { kind: 'contended' };
+        if (!technicianId) return { kind: 'contended' };
 
         // The lists above were read before the locks, so check again now that we hold them.
         if (!(await stillFree(trx, bayId, technicianId, occupied))) return { kind: 'contended' };
@@ -241,14 +271,18 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
         return { kind: 'booked', appointment };
       });
 
-    for (let attemptNumber = 1; attemptNumber <= MAX_ATTEMPTS; attemptNumber++) {
+    const startedAt = now();
+    let constraintRejections = 0;
+    let retries = 0;
+    for (let attemptNumber = 1; ; attemptNumber++) {
       let result: Attempt;
       try {
         result = await attempt(attemptNumber);
       } catch (error) {
         if (pgCode(error) === PG_EXCLUSION_VIOLATION) {
           // The database refused an overlap our checks missed. It is the final safety net.
-          result = { kind: 'contended' };
+          constraintRejections++;
+          result = { kind: 'rejected' };
         } else if (
           pgCode(error) === PG_UNIQUE_VIOLATION &&
           pgConstraint(error) === 'appointment_idempotency_key_key'
@@ -263,13 +297,16 @@ export function createBookingService(deps: BookingServiceDeps): BookingService {
 
       if (result.kind === 'booked') return { appointment: result.appointment, replayed: false };
       if (result.kind === 'existing') return replay(result.appointment, hash);
-      if (result.kind === 'full') break;
+      if (result.kind === 'full') break; // genuinely no capacity: answer at once
 
-      if (attemptNumber < MAX_ATTEMPTS) {
-        metrics.bookingRetries.inc();
-        log.debug({ attempt: attemptNumber }, 'Booking attempt contended, retrying');
-        await sleep(5 + random() * 20); // a short random pause so contenders do not collide again
-      }
+      // Capacity may remain, so try again with a fresh view, until the database has refused us
+      // MAX_ATTEMPTS times or the contention time budget is spent.
+      if (result.kind === 'rejected' && constraintRejections >= MAX_ATTEMPTS) break;
+      if (now() - startedAt >= CONTENTION_BUDGET_MS) break;
+      retries++;
+      metrics.bookingRetries.inc();
+      log.debug({ attempt: attemptNumber, reason: result.kind }, 'Booking attempt retrying');
+      await sleep(backoffMs(retries)); // jitter keeps contenders from colliding again in step
     }
 
     // About to say "no capacity". First make sure the capacity was not taken by THIS very request:

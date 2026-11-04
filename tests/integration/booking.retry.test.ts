@@ -5,6 +5,7 @@ import { AppError } from '../../src/api/errors.js';
 import { createMetrics, type Metrics } from '../../src/observability/metrics.js';
 import { createAvailabilityService } from '../../src/services/availability.js';
 import {
+  CONTENTION_BUDGET_MS,
   createBookingService,
   MAX_ATTEMPTS,
   requestHash,
@@ -60,9 +61,15 @@ function harness(options: {
     technicianId: string;
   }) => Promise<void>;
   afterIdempotencyCheck?: (attempt: number) => Promise<void>;
+  afterCandidatesRead?: (info: {
+    attempt: number;
+    bayIds: string[];
+    technicianIds: string[];
+  }) => Promise<void>;
   sleep?: (ms: number) => Promise<void>;
 }): Harness {
   const metrics = createMetrics();
+  let fakeNowMs = 0; // time only passes when the service sleeps, so tests never really wait
   const sleeps: number[] = [];
   const attempts: Harness['attempts'] = [];
   const clock = () => NOW;
@@ -71,14 +78,19 @@ function harness(options: {
     metrics,
     clock,
     availability: createAvailabilityService({ db: testDb.db, metrics, clock }),
+    now: () => fakeNowMs,
     sleep: async (ms) => {
       sleeps.push(ms);
+      fakeNowMs += ms;
       await options.sleep?.(ms);
     },
     random: () => 0,
     testHooks: {
       afterIdempotencyCheck: async (attempt) => {
         await options.afterIdempotencyCheck?.(attempt);
+      },
+      afterCandidatesRead: async (info) => {
+        await options.afterCandidatesRead?.(info);
       },
       beforeInsert: async (info) => {
         attempts.push({
@@ -162,6 +174,55 @@ describe('the database constraint as the final safety net (23P01)', () => {
     expect(await retries(h.metrics)).toBe(MAX_ATTEMPTS - 1);
     expect(h.sleeps).toHaveLength(MAX_ATTEMPTS - 1); // it paused between attempts, not after the last
     expect(await confirmedCount()).toBe(MAX_ATTEMPTS); // only the three stolen ones; ours was never stored
+  });
+});
+
+describe('a request that keeps losing races still gets a place while capacity remains', () => {
+  // The candidate list was read, then someone else booked exactly the resources we were about to
+  // take. That is not a database rejection, it is a stale view: retry with a fresh list.
+  it('survives more stale-view losses than the constraint bound (the false-409 fix)', async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 6, technicians: 6 });
+    const stolen: string[] = [];
+    const h = harness({
+      afterCandidatesRead: async ({ attempt, bayIds, technicianIds }) => {
+        if (attempt > 4) return; // lose four times in a row (more than MAX_ATTEMPTS = 3)
+        await stealResources(
+          world,
+          { bayId: bayIds[0]!, technicianId: technicianIds[0]! },
+          `stale-${attempt}`,
+        );
+        stolen.push(bayIds[0]!);
+      },
+    });
+
+    const outcome = await h.service.book(request(world, 'stale-key-1'), log);
+
+    expect(outcome.replayed).toBe(false);
+    expect(stolen).toHaveLength(4);
+    expect(stolen).not.toContain(outcome.appointment.bayId); // got one of the two places left
+    expect(await retries(h.metrics)).toBe(4);
+    expect(await confirmedCount()).toBe(5); // four taken by others, one ours
+  });
+
+  it('is still told "no capacity" straight away once nothing is left', async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
+    const h = harness({
+      afterCandidatesRead: async ({ attempt, bayIds, technicianIds }) => {
+        if (attempt === 1) {
+          await stealResources(
+            world,
+            { bayId: bayIds[0]!, technicianId: technicianIds[0]! },
+            'last-place',
+          );
+        }
+      },
+    });
+
+    await expect(h.service.book(request(world, 'stale-key-2'), log)).rejects.toMatchObject({
+      code: 'SLOT_UNAVAILABLE',
+    });
+    expect(h.sleeps).toHaveLength(1); // one pause, then the fresh list showed nothing free: no waiting out the budget
+    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBeLessThan(CONTENTION_BUDGET_MS);
   });
 });
 
@@ -280,7 +341,7 @@ describe('contention: free resources momentarily held by other in-flight booking
     return { release: releaseOnce };
   }
 
-  it('retries, then gives a 409 when the resources stay held for every attempt (and stores nothing)', async () => {
+  it('keeps retrying while resources stay held, and gives a 409 only when the time budget runs out', async () => {
     const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
     const lock = await holdLocks(world);
     const h = harness({});
@@ -290,8 +351,10 @@ describe('contention: free resources momentarily held by other in-flight booking
     });
     await lock.release();
 
-    expect(h.sleeps).toHaveLength(MAX_ATTEMPTS - 1);
-    expect(await retries(h.metrics)).toBe(MAX_ATTEMPTS - 1);
+    // Far more than the 3 constraint retries, and it stopped because the budget was spent.
+    expect(h.sleeps.length).toBeGreaterThan(MAX_ATTEMPTS);
+    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(CONTENTION_BUDGET_MS);
+    expect(await retries(h.metrics)).toBe(h.sleeps.length);
     expect(await confirmedCount()).toBe(0);
   });
 

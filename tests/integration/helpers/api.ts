@@ -2,6 +2,7 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import type { Writable } from 'node:stream';
 import { buildApp } from '../../../src/api/app.js';
 import type { Config } from '../../../src/config.js';
+import type { Db } from '../../../src/db/index.js';
 import type { TestDb } from './db.js';
 import type { World } from './fixtures.js';
 
@@ -37,12 +38,12 @@ export const newKey = () => `test-key-${Date.now()}-${++keyCounter}`;
 export async function startApi(
   testDb: TestDb,
   now: Date = NOW,
-  options: { logStream?: Writable } = {},
+  options: { logStream?: Writable; db?: Db } = {},
 ): Promise<TestApi> {
   let current = now;
   const app = await buildApp({
     config: config(testDb.databaseUrl, options.logStream ? 'info' : 'silent'),
-    db: testDb.db,
+    db: options.db ?? testDb.db,
     clock: () => current,
     ...(options.logStream && { logStream: options.logStream }),
   });

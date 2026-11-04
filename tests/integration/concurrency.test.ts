@@ -1,6 +1,7 @@
 import { sql } from 'kysely';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { bookingBody, monday, newKey, startApi, type TestApi } from './helpers/api.js';
+import { createDb } from '../../src/db/index.js';
 import { startTestDb, type TestDb } from './helpers/db.js';
 import { createWorld } from './helpers/fixtures.js';
 
@@ -19,7 +20,9 @@ beforeEach(async () => {
   await testDb.reset();
 });
 
-const ROUNDS = 5; // each scenario is repeated, because races only show up some of the time
+// Each scenario is repeated, because races only show up some of the time. Raise it to stress test:
+//   CONCURRENCY_ROUNDS=60 npm run test:concurrency
+const ROUNDS = Number(process.env['CONCURRENCY_ROUNDS'] ?? 5);
 
 const appointments = async () => {
   const { rows } = await sql<{ id: string; bay_id: string; technician_id: string; status: string }>`
@@ -67,6 +70,31 @@ describe('simultaneous requests for the last slot (US3, SC-001)', () => {
       expect(confirmed).toHaveLength(6);
       expect(new Set(confirmed.map((a) => a.bay_id)).size).toBe(6);
       expect(new Set(confirmed.map((a) => a.technician_id)).size).toBe(6);
+    },
+  );
+
+  // The first heavy storm in a fresh process is the worst case: every connection is created on
+  // demand, so the 30 requests reach the database at uneven moments. Each round gets a brand-new
+  // connection pool to reproduce that on purpose.
+  it.each(Array.from({ length: ROUNDS }, (_, i) => i + 1))(
+    'round %i with a cold connection pool: 30 requests for 6 slots still give exactly 6 confirmed',
+    async () => {
+      await testDb.reset();
+      const world = await createWorld(testDb.db, { withHours: true, bays: 6, technicians: 6 });
+      const coldDb = createDb(testDb.databaseUrl, { poolSize: 30 });
+      const cold = await startApi(testDb, undefined, { db: coldDb });
+      try {
+        const responses = await Promise.all(
+          Array.from({ length: 30 }, () =>
+            cold.book(bookingBody(world, monday('09:00')), newKey()),
+          ),
+        );
+        expect(tally(responses.map((r) => r.statusCode))).toEqual({ 201: 6, 409: 24 });
+        expect(await appointments()).toHaveLength(6);
+      } finally {
+        await cold.app.close();
+        await coldDb.destroy();
+      }
     },
   );
 
