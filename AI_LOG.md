@@ -79,3 +79,12 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Problem / gap:** the AI looked up current versions first instead of using remembered ones. That found TypeScript 7.0.2 is the latest, but typescript-eslint only supports below 6.1, so TypeScript was pinned to 6.0.3 (the version table would otherwise have installed an unsupported compiler). Also: `test:integration` exits 1 when a project has no tests yet; the AI added a temporary `passWithNoTests` and put its removal into task T010 so a missing test file can never pass silently later
 - **My decision:** TBD
 - **Verified by:** `npm ls` (no peer conflicts), `npm audit` (0 vulnerabilities), typecheck, lint and Prettier clean, a throwaway smoke test, and the compose database actually booted healthy on Postgres 16.15 and was torn down
+
+### 2026-11-04: Config and database schema (T006-T011)
+
+- **Phase:** implementation
+- **Asked:** continue Phase 2 test-first: config, Kysely plumbing, Testcontainers helper, schema tests, migration
+- **AI produced:** Zod config that lists every problem but never echoes values; typed Kysely layer; migration with the exclusion constraints; 15 config tests and 18 schema tests against a real Postgres 16
+- **Problem / gap:** (1) Kysely 0.29 moved `Migrator` to `kysely/migration`; the compile error pointed straight at it. (2) The linter flagged a rethrown error with no `cause`, which would have hidden the original Postgres error. (3) The AI left a junk destructuring line in the schema test that did not compile, and removed it. (4) The migration added constraints (service duration > 0, weekday range, close after open, unavailability period checks) that were not in data-model.md; the doc was updated to match
+- **My decision:** TBD
+- **Verified by:** all tests were seen red first (config: module missing; schema: `relation "dealership" does not exist`), then green. Break-the-logic: removing the technician constraint, ignoring status in the bay constraint, and accepting inclusive bounds each failed exactly the intended tests (1, 2 and 1) and passed again once restored. A deliberate secret leak into the config error was caught by the no-leak test

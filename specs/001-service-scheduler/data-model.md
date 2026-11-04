@@ -54,7 +54,9 @@ ALTER TABLE appointment ADD CONSTRAINT appointment_period_valid
 
 - `occupied_period` is half-open, so an appointment ending at 10:00 and one starting at 10:00 do not overlap (FR-005).
 - Cancelled rows are excluded by the `WHERE` clause, so cancelling frees the resource and keeps the record (FR-013).
-- Each unavailability table gets its own `EXCLUDE` on (resource, period) so the same resource cannot have overlapping blocks.
+- Each unavailability table gets its own `EXCLUDE` on (resource, period) (`bay_unavailability_no_overlap`, `technician_unavailability_no_overlap`) so the same resource cannot have overlapping blocks, plus the same non-empty, half-open `CHECK` as appointments (`*_period_valid`).
+- Reference-data rules enforced by the database: `service_type_duration_positive` (duration > 0), `service_type_buffer_not_negative` (buffer >= 0), `dealership_hours_weekday_valid` (weekday 0-6, where 0 = Sunday, matching Postgres `EXTRACT(dow)`), `dealership_hours_close_after_open`, one hours row per dealership and weekday (primary key), unique VIN (`vehicle_vin_key`), unique idempotency key (`appointment_idempotency_key_key`), and foreign keys on every reference.
+- `status` is the Postgres enum `appointment_status`.
 - Application checks: bay and technician must belong to the appointment's dealership; the technician must hold the service type's required skill; the vehicle must belong to the customer. Foreign keys cover existence.
 - Unavailability vs appointments is checked inside the booking transaction under a row lock on the chosen bay and technician (research.md, decision 2).
 
