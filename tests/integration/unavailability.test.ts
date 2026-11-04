@@ -21,8 +21,13 @@ beforeEach(async () => {
 });
 
 const kinds = ['bay', 'technician'] as const;
+/**
+ * A resource of the world. Index 0 is the one that booking would pick FIRST (lowest ID wins ties),
+ * index 1 the next. Blocking index 0 is what makes a test meaningful: blocking a resource that
+ * would not have been chosen anyway proves nothing.
+ */
 const resourceId = (world: World, kind: (typeof kinds)[number], index = 0) =>
-  (kind === 'bay' ? world.bayIds : world.technicianIds)[index]!;
+  [...(kind === 'bay' ? world.bayIds : world.technicianIds)].sort()[index]!;
 const blockCount = async () => {
   const { rows } = await sql<{ n: string }>`
     SELECT ((SELECT count(*) FROM bay_unavailability) + (SELECT count(*) FROM technician_unavailability))::text AS n`.execute(

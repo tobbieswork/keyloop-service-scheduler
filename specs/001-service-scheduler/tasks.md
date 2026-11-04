@@ -110,9 +110,9 @@
 - [x] T048 [US5] Write failing integration tests `tests/integration/unavailability.test.ts`: a blocked bay or technician is never assigned; availability excludes blocked time; creating a block over an existing confirmed appointment gives 409; overlapping blocks on one resource are rejected
 - [x] T049 [US5] Write failing race test with a forced interleaving: hold the booking transaction open after it reads unavailability (test hook or `pg_sleep`), start the unavailability request in parallel, then let both finish; afterwards the appointment and the block never overlap (proves the row-lock design deterministically)
 - [x] T050 [P] [US5] Write failing contract tests for `POST /bays/{id}/unavailability` and `POST /technicians/{id}/unavailability`
-- [ ] T051 [US5] Implement `src/services/unavailability.ts` taking the same row lock as booking, and the routes in `src/api/routes/unavailability.ts`
-- [ ] T052 [US5] Extend `src/services/booking.ts` and `src/services/availability.ts` to check unavailability inside the transaction
-- [ ] T053 [US5] Break-the-logic check: remove the row lock and confirm the forced-interleaving race test fails every time (not just sometimes), restore, and record the result in `AI_LOG.md`
+- [x] T051 [US5] Implement `src/services/unavailability.ts` taking the same row lock as booking, and the routes in `src/api/routes/unavailability.ts`
+- [x] T052 [US5] Extend `src/services/booking.ts` and `src/services/availability.ts` to check unavailability inside the transaction
+- [x] T053 [US5] Break-the-logic check: remove the row lock and confirm the forced-interleaving race test fails every time (not just sometimes), restore, and record the result in `AI_LOG.md`
 
 ---
 
