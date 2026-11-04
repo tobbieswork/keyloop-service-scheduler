@@ -135,3 +135,17 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **My decision:** TBD
 - **Open decisions for the owner:** (a) approve `SKIP LOCKED` over blocking locks; (b) accept the AppError layering shortcut or move errors into a shared module; (c) 3 attempts then 409 is the retry bound; raise it?
 - **Verified by:** all tests red first (modules missing), then green. 17 deliberate bugs: 14 caught directly (buffer ignored 2 tests, skill filter 2, tie-break 4, least-booked 3, past check 2, hours check 7, hash 2, replay check 2, counter 1, log leak 1, both layers 8, plus the three closed gaps); 3 masked by design (A, B, O) and recorded above. Final suite for this area: 211 tests passing, typecheck, ESLint clean
+
+### 2026-11-04: User Story 2, availability (T033-T037)
+
+- **Phase:** implementation
+- **Asked:** continue autonomously: availability as a pure function, a service, `GET /availability`, plus the two reference lists
+- **AI produced:** `generateSlots` (pure, 26 unit tests), an availability service, `/availability`, `/dealerships`, `/service-types`, and an integration test that checks availability and booking AGREE for the same start times (listed means bookable, omitted means not)
+- **Problem / gap:**
+  1. One unit test failed on the first run and the AI's own expectation was wrong: it said 10:15 should be unavailable, but bay A is free again from 10:00, so 10:15 is correctly bookable. The expectation was corrected by hand-working the answer, not by copying the code's output, and the test now documents which bay makes 08:15 and 10:15 work.
+  2. Break-the-logic: 13 deliberate bugs. Two survived and exposed real test gaps: the "nobody is qualified" test used technicians with NO skills (so the join dropped them anyway); and nothing tested a dealership with technicians but no bays while another dealership has bays. The fixture now gives "unqualified" technicians a different skill, three tests were added, and all 13 are now caught.
+  3. One mutation did not apply the first time because Prettier had re-wrapped the line; this was noticed from the runner's "did not apply" message rather than read as a pass.
+  4. The contract listed a 422 for `/availability` that nothing can return (a closed day is an empty list, not an error). It was removed so the contract says only what the service does.
+- **My decision:** TBD
+- **Open decision for the owner:** a closed day returns `200` with an empty list. Agree, or should it be an explicit error?
+- **Verified by:** tests red first, then green (189 unit, 31 integration and contract for this area); 13 mutations all caught after the two fixes; availability vs booking agreement tested for 10 start times plus a buffer and multi-resource case

@@ -107,6 +107,27 @@ describe('GET /availability (FR-010)', () => {
     expect(await slotsFor(unstaffed)).toEqual([]);
   });
 
+  it('offers nothing when the only technicians hold a different skill', async () => {
+    const world = await createWorld(testDb.db, {
+      withHours: true,
+      technicians: 0,
+      unqualifiedTechnicians: 3,
+    });
+    expect(await slotsFor(world)).toEqual([]);
+  });
+
+  it('offers nothing when the dealership has no bays of its own, even if another dealership has bays', async () => {
+    const a = await createWorld(testDb.db, { withHours: true, bays: 0, technicians: 2 });
+    await createWorld(testDb.db, { withHours: true, bays: 3, technicians: 0, sharedWith: a });
+    expect(await slotsFor(a)).toEqual([]);
+  });
+
+  it('offers nothing when the dealership has no qualified technicians of its own, even if another dealership does', async () => {
+    const a = await createWorld(testDb.db, { withHours: true, bays: 2, technicians: 0 });
+    await createWorld(testDb.db, { withHours: true, bays: 0, technicians: 3, sharedWith: a });
+    expect(await slotsFor(a)).toEqual([]);
+  });
+
   it('shows only slots in the future', async () => {
     const world = await createWorld(testDb.db, { withHours: true });
     api.setNow(new Date('2030-03-04T12:00:00.000Z'));

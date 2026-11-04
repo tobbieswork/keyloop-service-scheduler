@@ -123,12 +123,24 @@ export async function createWorld(db: Db, options: WorldOptions = {}): Promise<W
     technicianIds.push(technician.id);
   }
 
-  for (let i = 1; i <= unqualified; i++) {
-    // No technician_skill row, so this person can never be assigned the service.
-    await db
-      .insertInto('technician')
-      .values({ dealership_id: dealership.id, name: `SAMPLE Unqualified ${i}` })
-      .execute();
+  if (unqualified > 0) {
+    // These technicians DO hold a skill, just not the one the service type requires.
+    const otherSkill = await db
+      .insertInto('skill')
+      .values({ name: `SAMPLE tyres ${Math.random().toString(36).slice(2, 8)}` })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    for (let i = 1; i <= unqualified; i++) {
+      const technician = await db
+        .insertInto('technician')
+        .values({ dealership_id: dealership.id, name: `SAMPLE Unqualified ${i}` })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      await db
+        .insertInto('technician_skill')
+        .values({ technician_id: technician.id, skill_id: otherSkill.id })
+        .execute();
+    }
   }
 
   return {
