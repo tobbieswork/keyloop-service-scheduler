@@ -53,5 +53,5 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** run /speckit-tasks with tests before implementation
 - **AI produced:** tasks.md with 61 tasks in 8 phases; format-checked with a regex (all 61 match)
 - **Problem / gap:** AI found that FR-015 (resource unavailability) belongs to no user story in the spec, so tagged those 6 tasks `[FR-015]` instead of inventing a story. Also reordered: US3 (P1) comes after US2 (P2) because the conflict alternatives (FR-009) reuse the availability logic
-- **My decision:** TBD
-- **Verified by:** TBD
+- **My decision:** Fixed the gap at the source: added User Story 5 (block a bay or technician, P2) and SC-006 to the spec, so the 6 tasks are now tagged [US5]. Kept US2 before US3 as a documented dependency (not a priority change)
+- **Verified by:** format regex re-run after retagging (61/61 valid, 0 leftover [FR-015] tags); spec and tasks now trace every story to a phase

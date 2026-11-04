@@ -82,6 +82,23 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 
 ---
 
+### User Story 5 - Block a bay or technician (Priority: P2)
+
+A service manager marks a bay (for example, under maintenance) or a technician (for example, on leave or off shift) as unavailable for a time range. The system then never assigns that resource during that time.
+
+**Why this priority**: Without it, the scheduler books work onto bays that are out of service and technicians who are not there, which breaks trust quickly. It is not one of the brief's three core requirements, so it ranks below booking and concurrency safety.
+
+**Independent Test**: Block the only qualified technician for a period, then request a booking in that period. It is rejected, and availability for that day no longer shows the blocked times.
+
+**Acceptance Scenarios**:
+
+1. **Given** a bay is blocked for a period, **When** a booking overlapping that period is requested, **Then** the blocked bay is not assigned (another bay is used, or the request is rejected if none is free).
+2. **Given** a technician is blocked for a period, **When** availability is requested for that day, **Then** start times that need that technician during the blocked period are not offered unless another qualified technician is free.
+3. **Given** a resource already has a confirmed appointment in a period, **When** someone tries to block that resource over that period, **Then** the block is rejected with a conflict and the appointment is untouched.
+4. **Given** a booking and a block for the same resource and time arrive at the same moment, **When** both are processed, **Then** the stored result never has the appointment and the block overlapping.
+
+---
+
 ### Edge Cases
 
 - Request outside dealership working hours, or running past closing time.
@@ -137,6 +154,7 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 - **SC-003**: Every rejected booking includes a reason and, where capacity exists elsewhere, at least one alternative slot.
 - **SC-004**: Every confirmed appointment can be retrieved afterwards with customer, vehicle, technician and bay.
 - **SC-005**: Every acceptance scenario above is covered by an automated test.
+- **SC-006**: Zero appointments overlap an unavailability period of their assigned bay or technician, including when booking and blocking happen concurrently.
 
 ## Assumptions
 

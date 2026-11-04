@@ -103,16 +103,16 @@
 
 ---
 
-## Phase 7: Resource unavailability - FR-015 (no user story in the spec yet)
+## Phase 7: User Story 5 - Block a bay or technician (P2)
 
-**Purpose**: Bays and technicians can be blocked for a time range. Tagged by requirement because the spec has no user story for FR-015 (see summary).
+**Purpose**: Bays and technicians can be blocked for a time range, and are never assigned during it (FR-015, SC-006).
 
-- [ ] T048 [FR-015] Write failing integration tests `tests/integration/unavailability.test.ts`: a blocked bay or technician is never assigned; availability excludes blocked time; creating a block over an existing confirmed appointment gives 409; overlapping blocks on one resource are rejected
-- [ ] T049 [FR-015] Write failing race test: a booking and an unavailability request for the same resource and time run in parallel; afterwards the two never overlap (proves the row-lock design)
-- [ ] T050 [P] [FR-015] Write failing contract tests for `POST /bays/{id}/unavailability` and `POST /technicians/{id}/unavailability`
-- [ ] T051 [FR-015] Implement `src/services/unavailability.ts` taking the same row lock as booking, and the routes in `src/api/routes/unavailability.ts`
-- [ ] T052 [FR-015] Extend `src/services/booking.ts` and `src/services/availability.ts` to check unavailability inside the transaction
-- [ ] T053 [FR-015] Break-the-logic check: remove the row lock, confirm the race test can fail, restore, and record the result in `AI_LOG.md`
+- [ ] T048 [US5] Write failing integration tests `tests/integration/unavailability.test.ts`: a blocked bay or technician is never assigned; availability excludes blocked time; creating a block over an existing confirmed appointment gives 409; overlapping blocks on one resource are rejected
+- [ ] T049 [US5] Write failing race test: a booking and an unavailability request for the same resource and time run in parallel; afterwards the two never overlap (proves the row-lock design)
+- [ ] T050 [P] [US5] Write failing contract tests for `POST /bays/{id}/unavailability` and `POST /technicians/{id}/unavailability`
+- [ ] T051 [US5] Implement `src/services/unavailability.ts` taking the same row lock as booking, and the routes in `src/api/routes/unavailability.ts`
+- [ ] T052 [US5] Extend `src/services/booking.ts` and `src/services/availability.ts` to check unavailability inside the transaction
+- [ ] T053 [US5] Break-the-logic check: remove the row lock, confirm the race test can fail, restore, and record the result in `AI_LOG.md`
 
 ---
 
@@ -136,9 +136,9 @@
 - Phase 1 then Phase 2 (blocking) then user stories.
 - **US1** needs Phase 2 only.
 - **US2** needs Phase 2 and the repositories from US1.
-- **US3** needs **US1 and US2**: conflict alternatives (FR-009) reuse the availability logic. It is P1 in the spec but is built after US2 for that reason.
+- **US3** needs **US1 and US2**: conflict alternatives (FR-009) reuse the availability logic. It is P1 in the spec but is built after US2 for that reason. This is a dependency order, not a priority change (owner-approved, 2026-11-04).
 - **US4** needs US1 only and can run in parallel with US2 or US3.
-- **FR-015** needs US1 and US2 (it extends booking and availability).
+- **US5** needs US1 and US2 (it extends booking and availability).
 - **Phase 8** needs everything; `docs/system-design.md` can start earlier because it only draws on plan.md and research.md.
 
 ## Parallel examples
@@ -152,6 +152,6 @@
 
 1. **MVP**: Phases 1-3. A working, tested booking API is already a submittable result.
 2. Add US2, then US3 (the concurrency story is the strongest evidence of engineering care).
-3. Add US4 and FR-015.
+3. Add US4 and US5.
 4. Phase 8 deliverables. Reserve real time for the README narrative and the video.
 5. Commit after each task or small group, so the history shows tests, then implementation, then fixes.
