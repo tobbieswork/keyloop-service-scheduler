@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-04
 
-**Status**: Draft (AI-drafted from the Keyloop Scenario A brief; pending owner review)
+**Status**: Reviewed (AI-drafted from the Keyloop Scenario A brief; reviewed and accepted by the owner 2026-11-04)
 
 **Input**: User description: "Build an Appointment Scheduler application to replace manual booking systems. A user requests a service appointment for a specific vehicle, service type and dealership at a desired time. Before confirming, check that both a service bay and a qualified technician are available for the entire service duration. On success, create a persistent appointment record linking customer, vehicle, technician and service bay."
 
@@ -84,7 +84,7 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 
 ### User Story 5 - Block a bay or technician (Priority: P2)
 
-A service manager marks a bay (for example, under maintenance) or a technician (for example, on leave or off shift) as unavailable for a time range. The system then never assigns that resource during that time.
+A service manager marks a bay (for example, under maintenance) or a technician (for example, on leave or off shift) as unavailable for a time range (an unavailability period, also called a block). The system then never assigns that resource during that time.
 
 **Why this priority**: Without it, the scheduler books work onto bays that are out of service and technicians who are not there, which breaks trust quickly. It is not one of the brief's three core requirements, so it ranks below booking and concurrency safety.
 
@@ -122,8 +122,8 @@ A service manager marks a bay (for example, under maintenance) or a technician (
 - **FR-005**: System MUST treat back-to-back appointments (end equals next start) as non-overlapping.
 - **FR-006**: System MUST persist each confirmed appointment, linking customer, vehicle, technician and service bay.
 - **FR-007**: System MUST guarantee a bay or technician is never double-booked, including under concurrent requests.
-- **FR-008**: System MUST reject unavailable requests with a clear conflict reason and MUST NOT store a partial appointment.
-- **FR-009**: System MUST offer alternative available slots when a request is rejected for lack of capacity.
+- **FR-008**: System MUST reject requests that cannot be fulfilled for lack of capacity with a clear conflict reason and MUST NOT store a partial appointment.
+- **FR-009**: System MUST offer up to 5 alternative available slots when a request is rejected for lack of capacity, searching the requested day first and then the next 7 days, in time order.
 - **FR-010**: System MUST allow querying available start times for a service type, dealership and date.
 - **FR-011**: System MUST reject requests outside dealership working hours or in the past.
 - **FR-012**: System MUST validate all input and return consistent, machine-readable errors.
@@ -151,7 +151,7 @@ A service manager marks a bay (for example, under maintenance) or a technician (
 
 - **SC-001**: Zero double-booked bays or technicians, verified by a concurrency test with many simultaneous requests for the same slot.
 - **SC-002**: A booking request receives a confirmed or rejected answer in under 1 second under normal load.
-- **SC-003**: Every rejected booking includes a reason and, where capacity exists elsewhere, at least one alternative slot.
+- **SC-003**: Every booking rejected for lack of capacity includes a reason and, if any slot exists on the requested day or the next 7 days, at least one alternative (up to 5).
 - **SC-004**: Every confirmed appointment can be retrieved afterwards with customer, vehicle, technician and bay.
 - **SC-005**: Every acceptance scenario above is covered by an automated test.
 - **SC-006**: Zero appointments overlap an unavailability period of their assigned bay or technician, including when booking and blocking happen concurrently.

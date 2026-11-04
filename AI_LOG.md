@@ -55,3 +55,11 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Problem / gap:** AI found that FR-015 (resource unavailability) belongs to no user story in the spec, so tagged those 6 tasks `[FR-015]` instead of inventing a story. Also reordered: US3 (P1) comes after US2 (P2) because the conflict alternatives (FR-009) reuse the availability logic
 - **My decision:** Fixed the gap at the source: added User Story 5 (block a bay or technician, P2) and SC-006 to the spec, so the 6 tasks are now tagged [US5]. Kept US2 before US3 as a documented dependency (not a priority change)
 - **Verified by:** format regex re-run after retagging (61/61 valid, 0 leftover [FR-015] tags); spec and tasks now trace every story to a phase
+
+### 2026-11-04: Cross-artifact analysis and fixes
+- **Phase:** design / verification
+- **Asked:** run /speckit-analyze (read-only) across spec, plan, tasks, data model, contract and constitution
+- **AI produced:** 14 findings (0 critical, 1 high, 8 medium, 5 low) and 100% requirement coverage, with 4 requirements only partly covered
+- **Problem / gap:** HIGH: SC-003 required an alternative "where capacity exists elsewhere" but the planned test returned none when the day was full, so the two contradicted each other. Others: a US2 test depending on US5 code; two tests ordered after their implementation or before their test harness; no HTTP status for validation errors; no tests for malformed input, cross-dealership resources or GET by ID; break-the-logic checks that could only fail "sometimes"; constitution still marked DRAFT
+- **My decision:** Alternatives = up to 5 slots, the requested day first, then the next 7 days. Approved the rest of the fixes. AI chose two details I accepted: 400 for malformed requests vs 422 for business-rule breaks, and "replay after cancel returns the cancelled record"
+- **Verified by:** task format regex (61/61), Phase 2 order re-read, Redocly lint (0 errors, 0 warnings), grep for leftover terms

@@ -75,6 +75,6 @@ ALTER TABLE appointment ADD CONSTRAINT appointment_period_valid
 
 ## Validation rules (from the spec)
 - Start time must be in the future, on a 15-minute boundary in the dealership's local time (FR-011).
-- The whole occupied period must fit inside one day's opening hours (FR-011).
+- The whole occupied period must fit inside one day's working hours (FR-011).
 - Unknown dealership, vehicle, service type or customer returns 404; a vehicle not owned by the customer returns 422.
 - Unavailability period end must be after start, and must not overlap a confirmed appointment of that resource (409).

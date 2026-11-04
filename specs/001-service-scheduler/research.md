@@ -15,15 +15,16 @@ All technical unknowns are resolved. The stack defaults were confirmed by the ow
 - **Deadlock avoidance**: fixed lock order; locks are held only for the short transaction.
 
 ## 3. Time model
-- **Decision**: Store all instants as `timestamptz` (UTC). Each dealership has an IANA time zone and weekly opening hours in local time. The API accepts ISO 8601 timestamps with offset and validates 15-minute alignment and opening hours in the dealership's local time.
+- **Decision**: Store all instants as `timestamptz` (UTC). Each dealership has an IANA time zone and weekly working hours in local time. The API accepts ISO 8601 timestamps with offset and validates 15-minute alignment and working hours in the dealership's local time.
 - **Rationale**: Avoids daylight-saving bugs; the local-time rules live in one place (domain layer).
 - **Alternatives**: Naive local timestamps (ambiguous at DST changes, rejected).
-- **Rule**: The whole occupied period (duration + buffer) must fit within a single day's opening hours.
+- **Rule**: The whole occupied period (duration + buffer) must fit within a single day's working hours.
 
 ## 4. Idempotency
 - **Decision**: Required `Idempotency-Key` header. Stored on the appointment with a hash of the request body. Same key and same body returns the original appointment (HTTP 200, `Idempotent-Replayed: true`). Same key and different body returns 422 `IDEMPOTENCY_KEY_REUSED`. Concurrent same-key requests are resolved by a unique constraint, with the loser reading the winner's row.
 - **Rationale**: Safe retries after timeouts without double-booking or confusing conflicts.
 - **Known limit**: A request rejected with 409 stores nothing, so a retry with the same key is re-evaluated. This is intended, because capacity may have changed.
+- **Replay after cancel**: replaying a key whose appointment has since been cancelled returns 200 with the current (cancelled) record. It never creates a new booking; rebooking needs a new key.
 - **Alternatives**: Duplicate detection by content (breaks legitimate repeat bookings); no handling (weak reliability).
 
 ## 5. Resource selection
@@ -41,7 +42,22 @@ All technical unknowns are resolved. The stack defaults were confirmed by the ow
 - **Rationale**: One source of truth for validation, and the contract can't silently drift.
 
 ## 8. Error format
-- **Decision**: One JSON shape: `{ "error": { "code", "message", "requestId", "details?" } }`. Conflicts return 409 with `alternatives` (up to 5 nearby available slots from the same availability logic).
+- **Decision**: One JSON shape: `{ "error": { "code", "message", "requestId", "details?" } }`. A capacity conflict adds a top-level `alternatives` array: up to 5 available slots, searching the requested day first and then the next 7 days, in time order, computed by the same availability logic (FR-009, SC-003). Empty only when nothing is free in that 8-day window.
+- **Status mapping** (one table, used by the error handler and the tests):
+
+| Code | HTTP | When |
+|---|---|---|
+| `VALIDATION_ERROR` | 400 | Request is malformed: missing or invalid field or header (including `Idempotency-Key`), bad UUID or date format |
+| `NOT_FOUND` | 404 | Referenced dealership, service type, customer, vehicle, appointment, bay or technician does not exist |
+| `SLOT_UNAVAILABLE` | 409 | No bay or no qualified technician free for the whole period |
+| `RESOURCE_HAS_APPOINTMENTS` | 409 | An unavailability period would overlap a confirmed appointment |
+| `OUTSIDE_WORKING_HOURS` | 422 | Well-formed, but outside working hours, not on a 15-minute boundary, or not fitting in one day's working hours |
+| `START_IN_PAST` | 422 | Well-formed, but the start time is in the past |
+| `VEHICLE_CUSTOMER_MISMATCH` | 422 | Vehicle does not belong to the customer |
+| `IDEMPOTENCY_KEY_REUSED` | 422 | Same key sent with a different request body |
+| `INTERNAL_ERROR` | 500 | Anything unexpected (details never leaked) |
+
+  Rule of thumb: 400 = the request is malformed, 422 = the request is well-formed but breaks a business rule.
 
 ## 9. Testing
 - **Decision**: Vitest. Unit tests for pure domain logic. Integration and concurrency tests run against a real Postgres via Testcontainers (Docker required; OrbStack is installed but its daemon must be running). Parallel booking test fires N requests for the last slot and asserts exactly one confirmed appointment.

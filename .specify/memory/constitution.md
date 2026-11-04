@@ -1,6 +1,6 @@
 # Keyloop Service Scheduler Constitution
 
-DRAFT: owner to review and edit before running /speckit-specify.
+Reviewed and accepted by the owner on 2026-11-04.
 
 ## Core Principles
 
@@ -38,4 +38,4 @@ Node.js + TypeScript, PostgreSQL, REST (OpenAPI spec), Docker Compose for local 
 The owner has final say on every design decision. AI output is a draft until reviewed.
 Meaningful AI interactions, including corrections, are recorded in AI_LOG.md.
 
-**Version**: 0.1.0-draft | **Ratified**: pending owner review
+**Version**: 1.0.0 | **Ratified**: 2026-11-04

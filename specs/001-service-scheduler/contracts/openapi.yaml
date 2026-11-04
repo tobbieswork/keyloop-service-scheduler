@@ -37,6 +37,7 @@ paths:
                   slots:
                     type: array
                     items: { $ref: '#/components/schemas/Slot' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
   /appointments:
@@ -61,9 +62,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Appointment' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409':
-          description: No bay or no qualified technician free. Includes alternative slots.
+          description: No bay or no qualified technician free. Includes up to 5 alternative slots (requested day first, then the next 7 days).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ConflictError' }
@@ -80,6 +82,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Appointment' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
   /appointments/{id}/cancel:
     post:
@@ -93,6 +96,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Appointment' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
   /bays/{id}/unavailability:
     post:
@@ -111,6 +115,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Unavailability' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
@@ -131,6 +136,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Unavailability' }
+        '400': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
