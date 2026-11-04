@@ -38,7 +38,7 @@ export async function createWorld(db: Db, options: WorldOptions = {}): Promise<W
 
   const skill = await db
     .insertInto('skill')
-    .values({ name: 'SAMPLE brakes' })
+    .values({ name: `SAMPLE brakes ${Math.random().toString(36).slice(2, 8)}` })
     .returning('id')
     .executeTakeFirstOrThrow();
 

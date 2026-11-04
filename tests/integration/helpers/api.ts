@@ -1,4 +1,5 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
+import type { Writable } from 'node:stream';
 import { buildApp } from '../../../src/api/app.js';
 import type { Config } from '../../../src/config.js';
 import type { TestDb } from './db.js';
@@ -15,10 +16,10 @@ export interface TestApi {
   getAppointment: (id: string) => Promise<LightMyRequestResponse>;
 }
 
-const config = (databaseUrl: string): Config => ({
+const config = (databaseUrl: string, logLevel: Config['logLevel']): Config => ({
   nodeEnv: 'test',
   port: 0,
-  logLevel: 'silent',
+  logLevel,
   databaseUrl,
   otlpEndpoint: undefined,
 });
@@ -27,12 +28,17 @@ let keyCounter = 0;
 /** A fresh idempotency key that satisfies the 8-128 character rule. */
 export const newKey = () => `test-key-${Date.now()}-${++keyCounter}`;
 
-export async function startApi(testDb: TestDb, now: Date = NOW): Promise<TestApi> {
+export async function startApi(
+  testDb: TestDb,
+  now: Date = NOW,
+  options: { logStream?: Writable } = {},
+): Promise<TestApi> {
   let current = now;
   const app = await buildApp({
-    config: config(testDb.databaseUrl),
+    config: config(testDb.databaseUrl, options.logStream ? 'info' : 'silent'),
     db: testDb.db,
     clock: () => current,
+    ...(options.logStream && { logStream: options.logStream }),
   });
   return {
     app,
