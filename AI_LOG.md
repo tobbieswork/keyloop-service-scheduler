@@ -77,7 +77,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** start implementation with Phase 1: skeleton, pinned dependencies, lint/format, Docker Compose, Vitest
 - **AI produced:** package.json and strict tsconfig, 24 exact-pinned dependencies, ESLint/Prettier config, Postgres compose file, Vitest with unit and integration projects
 - **Problem / gap:** the AI looked up current versions first instead of using remembered ones. That found TypeScript 7.0.2 is the latest, but typescript-eslint only supports below 6.1, so TypeScript was pinned to 6.0.3 (the version table would otherwise have installed an unsupported compiler). Also: `test:integration` exits 1 when a project has no tests yet; the AI added a temporary `passWithNoTests` and put its removal into task T010 so a missing test file can never pass silently later
-- **My decision:** TBD
+- **My decision:** Accepted both: keep TypeScript 6.0.3 until typescript-eslint supports 7; the temporary `passWithNoTests` was fine and was removed in T010
 - **Verified by:** `npm ls` (no peer conflicts), `npm audit` (0 vulnerabilities), typecheck, lint and Prettier clean, a throwaway smoke test, and the compose database actually booted healthy on Postgres 16.15 and was torn down
 
 ### 2026-11-04: Config and database schema (T006-T011)
@@ -86,7 +86,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** continue Phase 2 test-first: config, Kysely plumbing, Testcontainers helper, schema tests, migration
 - **AI produced:** Zod config that lists every problem but never echoes values; typed Kysely layer; migration with the exclusion constraints; 15 config tests and 18 schema tests against a real Postgres 16
 - **Problem / gap:** (1) Kysely 0.29 moved `Migrator` to `kysely/migration`; the compile error pointed straight at it. (2) The linter flagged a rethrown error with no `cause`, which would have hidden the original Postgres error. (3) The AI left a junk destructuring line in the schema test that did not compile, and removed it. (4) The migration added constraints (service duration > 0, weekday range, close after open, unavailability period checks) that were not in data-model.md; the doc was updated to match
-- **My decision:** TBD
+- **My decision:** Accepted the extra database rules (service duration over zero, buffer not negative, weekday range, closing after opening, unavailability period checks); data-model.md was updated so the doc and code agree
 - **Verified by:** all tests were seen red first (config: module missing; schema: `relation "dealership" does not exist`), then green. Break-the-logic: removing the technician constraint, ignoring status in the bay constraint, and accepting inclusive bounds each failed exactly the intended tests (1, 2 and 1) and passed again once restored. A deliberate secret leak into the config error was caught by the no-leak test
 
 ### 2026-11-04: Seed data and time logic (T012-T016)
@@ -95,5 +95,5 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Asked:** continue Phase 2: SAMPLE seed data, then the pure domain logic for time ranges and working hours, tests first
 - **AI produced:** re-runnable seed with fixed IDs; half-open `TimeRange`; DST-aware local-time conversion built on `Intl` (Node 24 has no stable Temporal); 69 unit tests. Expected values were derived from calendar facts (London springs forward 2030-03-31, New York 2030-03-10), not from running the code
 - **Problem / gap:** the seed's command-line entry point was only trusted after running `npm run migrate` and `npm run seed` for real against the compose database. Break-the-logic: closing the range (touching counts as overlap), ignoring DST, and choosing the later of two ambiguous times each failed 2, 10 and 1 tests. A fourth break (measuring 15-minute alignment in UTC instead of local time) SURVIVED. Investigation showed it is an equivalent mutant: every real zone offset is a multiple of 15 minutes, so no test can tell the two apart. The test title had overclaimed, so it was retitled honestly rather than bent to fail
-- **My decision:** TBD
+- **My decision:** Accepted all: the `Intl`-based time conversion, earlier moment for a local time that happens twice, forward shift for one that never happens, and the honest retitle of the equivalent-mutant test instead of forcing it to fail
 - **Verified by:** tests seen red first (modules missing), then green; four deliberate breaks, three caught, one analysed as equivalent; seed and migrate commands run for real, including exit code 1 on bad config
