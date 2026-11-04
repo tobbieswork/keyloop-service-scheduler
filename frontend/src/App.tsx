@@ -22,7 +22,11 @@ export interface AppProps {
 
 type Reference = { dealerships: Dealership[]; serviceTypes: ServiceType[] };
 type Availability =
-  { status: 'loading' } | { status: 'ready'; slots: Slot[] } | { status: 'error'; error: unknown };
+  | { status: 'loading' }
+  | { status: 'ready'; slots: Slot[] }
+  /** The same question is being asked again (after a booking or cancel): keep the old list meanwhile. */
+  | { status: 'refreshing'; slots: Slot[] }
+  | { status: 'error'; error: unknown };
 
 /** One attempt to book one time. The key stays the same for retries of THIS attempt only. */
 interface Attempt {
@@ -85,11 +89,22 @@ export function App({
   // Load the times whenever the choice changes. A newer request cancels the older one, so a slow
   // answer can never overwrite a fresher one.
   const latest = useRef(0);
+  const lastQuery = useRef('');
   useEffect(() => {
     if (!dealershipId || !serviceTypeId || !date) return;
     const controller = new AbortController();
     const id = ++latest.current;
-    setAvailability({ status: 'loading' });
+    // The same question again (only the refresh counter changed): keep the old times on screen,
+    // so the list does not vanish and reappear. A different question (a new date, dealership or
+    // service) must NOT show the old times, because they would be for the wrong thing.
+    const queryKey = `${dealershipId}|${serviceTypeId}|${date}`;
+    const sameQuestion = lastQuery.current === queryKey;
+    lastQuery.current = queryKey;
+    setAvailability((previous) =>
+      sameQuestion && (previous.status === 'ready' || previous.status === 'refreshing')
+        ? { status: 'refreshing', slots: previous.slots }
+        : { status: 'loading' },
+    );
     api
       .availability({ dealershipId, serviceTypeId, date }, controller.signal)
       .then((slots) => {
@@ -143,6 +158,10 @@ export function App({
       // Keep the confirmation open: the key is kept too, so pressing Book again is a safe retry.
       setNotice({ kind: 'error', error });
       if (error instanceof ApiError && error.code === 'SLOT_UNAVAILABLE') {
+        // That time is gone: booking it again could only fail, so close the confirmation and
+        // offer the alternatives instead. (For a network error the panel stays open on purpose,
+        // because retrying with the same key is safe.)
+        setAttempt(undefined);
         setAlternatives(error.alternatives);
         refreshTimes();
       }
@@ -248,6 +267,7 @@ export function App({
             </p>
             <div role="status" aria-label="Available times" aria-live="polite">
               {availability.status === 'loading' && <p>Loading times…</p>}
+              {availability.status === 'refreshing' && <p>Updating times…</p>}
               {availability.status === 'ready' && availability.slots.length === 0 && (
                 <p>No times available on this date.</p>
               )}
@@ -258,7 +278,7 @@ export function App({
                 </p>
               )}
             </div>
-            {availability.status === 'ready' && (
+            {(availability.status === 'ready' || availability.status === 'refreshing') && (
               <SlotList
                 slots={availability.slots}
                 timeZone={dealership.timeZone}

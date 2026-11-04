@@ -4,8 +4,8 @@ Keyloop technical assessment, **Scenario A: The Unified Service Scheduler**. A b
 service appointment only when **a service bay and a qualified technician are both free for the whole
 service duration**, and stores an appointment linking customer, vehicle, technician and bay.
 
-- **Layer implemented:** backend (REST API, PostgreSQL, OpenAPI contract). The client side is a set
-  of cURL examples (`docs/examples.sh`) and the test suite.
+- **Layers implemented:** the backend in depth (REST API, PostgreSQL, OpenAPI contract), plus a small
+  [booking UI](frontend/README.md). cURL examples are in `docs/examples.sh`.
 - **Stack:** Node.js 24, TypeScript (strict), Fastify, Zod, Kysely, PostgreSQL 16, Vitest, Testcontainers.
 - **Documents:** [System Design Document](docs/system-design.md) ·
   [API contract](specs/001-service-scheduler/contracts/openapi.yaml) ·
@@ -70,6 +70,23 @@ Double-booking is prevented in the database, not just in code. Four layers, each
 Retries are safe because every booking carries an idempotency key. Working hours, the 15-minute
 grid and "which day" are computed in the **dealership's time zone**, including daylight saving.
 
+## Booking UI
+
+A deliberately simple React front end in [`frontend/`](frontend/README.md): choose a dealership, service
+and date, see the times in the **dealership's own clock**, book, recover from a conflict, cancel.
+
+```bash
+cd frontend && npm install && npm run dev      # http://localhost:5173 (backend must be running)
+npm run test:ui                                # 61 tests, from the repository root
+```
+
+| Times and booking                  | After a conflict                         | On a phone                         |
+| ---------------------------------- | ---------------------------------------- | ---------------------------------- |
+| ![times](docs/images/ui-times.png) | ![conflict](docs/images/ui-conflict.png) | ![phone](docs/images/ui-phone.png) |
+
+Its limits are stated on screen: customers are a SAMPLE-data demo picker (the API has no
+customer-listing endpoint, on purpose) and the list of bookings covers the current session only.
+
 ## Project layout
 
 ```text
@@ -80,12 +97,14 @@ src/api/           routes, validation, the single error shape
 src/observability/ request IDs, PII-safe logs, metrics, spans
 tests/             unit, integration (real PostgreSQL), contract (OpenAPI), performance
 specs/             constitution, spec, clarifications, plan, research, data model, contract, tasks
+frontend/          the booking UI (React, Vite), with its own tests and README
 docs/              system design, cURL examples, video script
 ```
 
 ## Results
 
-- **Tests:** 439 passing (197 unit, the rest integration, contract, concurrency and performance).
+- **Tests:** 500 passing: 439 backend (197 unit, the rest integration, contract, concurrency and
+  performance) and 61 frontend.
 - **Performance** at 50 concurrent requests on a laptop, against targets set in the plan: booking
   p95 **125 ms** (target 300 ms); availability p95 **31 ms** (target 200 ms).
 - **Concurrency:** 20 parallel requests for the last slot give exactly one booking; 30 requests for

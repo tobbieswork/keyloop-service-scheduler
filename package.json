@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "lint:api": "redocly lint specs/001-service-scheduler/contracts/openapi.yaml --config specs/001-service-scheduler/contracts/redocly.yaml",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:ui": "npm --prefix frontend test"
   },
   "dependencies": {
     "@fastify/swagger": "9.9.3",

@@ -15,11 +15,12 @@ appointment linking customer, vehicle, technician and bay.
 
 **Implemented (backend):** booking, availability, alternative slots on conflict, cancel, blocking a
 bay or technician, safe retries (idempotency), a REST API with an OpenAPI contract, observability.
+A small React booking UI (section 10) shows the API working end to end.
 
 **Not implemented (documented, deliberate):** authentication and authorisation, payments,
 notifications, dealership holidays, cross-dealership assignment, rescheduling as a single
 operation (cancel plus rebook), automatic cancellation when a block is added over an appointment,
-and a frontend (a separate spec cycle, if time allows).
+and customer search in the UI (the API has no such endpoint, on purpose).
 
 ### Assumptions made where the brief was ambiguous
 
@@ -226,12 +227,12 @@ and its capacity check must yield a replay, never a false 409.
 
 ## 9. Testing strategy
 
-More than 430 automated tests (unit, integration against a real PostgreSQL, contract against the
-OpenAPI file, concurrency, performance smoke). Rules the project followed:
+500 automated tests: 439 for the backend (unit, integration against a real PostgreSQL, contract
+against the OpenAPI file, concurrency, performance smoke) and 61 for the UI. Rules the project followed:
 
 - **Tests first.** Each task's tests were written and seen failing before the code.
-- **Break the logic.** After each feature the code was deliberately broken (about 80 mutations in
-  total) to prove the tests can fail. This found real test weaknesses, for example a test that
+- **Break the logic.** After each feature the code was deliberately broken (about 95 mutations in
+  total, backend and UI) to prove the tests can fail. This found real test weaknesses, for example a test that
   blocked a resource nobody would have chosen anyway, and a back-to-back test that only booked
   the later slot second.
 - **Deterministic races.** Rare interleavings are forced with small test seams (a hook between two
@@ -239,7 +240,25 @@ OpenAPI file, concurrency, performance smoke). Rules the project followed:
 - **Run it for real.** A hands-on run against the compiled service found three problems the suite
   had missed (see the AI log).
 
-## 10. Known limitations
+## 10. The booking UI (a second, deliberately small layer)
+
+The brief asks for one layer in depth; the backend is that layer. A small React client
+(`frontend/`) shows the API working end to end. Design points:
+
+- **One origin.** The dev server proxies `/api` to the backend, so no CORS configuration is added to
+  the service.
+- **Time is the dealership's.** Every time is formatted in the dealership's IANA zone with its offset
+  label, because "09:00" must mean the same to everyone booking for that dealership. The unit tests
+  cover daylight-saving days and the two 01:30s on the day clocks go back.
+- **Safe retries.** The idempotency key is created when a time is chosen and reused on a retry after
+  a network failure; a different time gets a new one.
+- **No stale answers.** A newer availability request cancels the older one; after a booking or cancel
+  the existing times stay visible while they refresh.
+- **Honest scope.** No customer lookup (there is no such endpoint, deliberately: personal data and no
+  authentication), so a labelled SAMPLE-data picker is used; the booking list is session-only because
+  the API has no list endpoint.
+
+## 11. Known limitations
 
 - A booking is refused with 409 if every free resource stays locked by other in-flight bookings for
   the whole 1 second budget, although capacity may exist. Nothing is double-booked, and the response
@@ -249,7 +268,7 @@ OpenAPI file, concurrency, performance smoke). Rules the project followed:
 - Single database node; no authentication; no rate limiting.
 - The booking service imports the API layer's error type (a small layering shortcut).
 
-## 11. How GenAI was used in the design phase
+## 12. How GenAI was used in the design phase
 
 <!-- DRAFT for the owner to review and put in their own words before submission. Every fact below
 is taken from AI_LOG.md and the commit history. -->

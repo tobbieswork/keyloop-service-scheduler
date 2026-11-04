@@ -194,6 +194,43 @@ describe('choosing a dealership, service or date', () => {
     void user;
   });
 
+  it('keeps the current times on screen while they refresh, and says they are updating', async () => {
+    let release!: (slots: Slot[]) => void;
+    const availability = vi
+      .fn<ApiClient['availability']>()
+      .mockResolvedValueOnce([slot('08:00'), slot('09:00')])
+      .mockResolvedValueOnce([slot('08:00'), slot('09:00')]) // refresh after the booking...
+      .mockImplementationOnce(() => new Promise<Slot[]>((r) => (release = r))); // ...held back
+    const { user } = mount(fakeApi({ availability }));
+    await ready();
+    await user.click(timeButton('09:00 GMT'));
+    await user.click(screen.getByRole('button', { name: /book this time/i }));
+    await screen.findByRole('status', { name: /booking result/i });
+    await waitFor(() => expect(availability).toHaveBeenCalledTimes(2));
+
+    // Cancelling triggers another refresh; hold it open and check nothing disappears meanwhile.
+    await user.click(screen.getByRole('button', { name: /cancel booking/i }));
+    await waitFor(() => expect(availability).toHaveBeenCalledTimes(3));
+    expect(timeButton('08:00 GMT')).toBeInTheDocument();
+    expect(screen.getByText(/updating times/i)).toBeInTheDocument();
+
+    await act(async () => release([slot('08:00')]));
+    await waitFor(() => expect(screen.queryByText(/updating times/i)).not.toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: '09:00 GMT' })).not.toBeInTheDocument();
+  });
+
+  it('does NOT keep the old times when the user changes the date (they would be for the wrong day)', async () => {
+    const availability = vi
+      .fn<ApiClient['availability']>()
+      .mockResolvedValueOnce([slot('08:00')])
+      .mockImplementationOnce(() => new Promise<Slot[]>(() => {})); // never answers
+    mount(fakeApi({ availability }));
+    await ready();
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2030-03-08' } });
+    expect(await screen.findByText(/loading times/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '08:00 GMT' })).not.toBeInTheDocument();
+  });
+
   it('shows an error with a retry when the times cannot be loaded', async () => {
     const availability = vi
       .fn<ApiClient['availability']>()
@@ -370,6 +407,16 @@ describe('recovering from a conflict (US2)', () => {
     expect(alert).toHaveTextContent(/reference: req-409/i);
     expect(screen.getByRole('button', { name: 'Tue 5 Mar, 10:15 GMT' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wed 6 Mar, 08:00 GMT' })).toBeInTheDocument();
+  });
+
+  it('closes the confirmation: that time is gone, so booking it again could only fail', async () => {
+    const book = vi.fn<ApiClient['book']>().mockRejectedValue(conflict([slot('10:15')]));
+    const { user } = mount(fakeApi({ book }));
+    await ready();
+    await user.click(timeButton('09:00 GMT'));
+    await user.click(screen.getByRole('button', { name: /book this time/i }));
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('region', { name: /confirm booking/i })).not.toBeInTheDocument();
   });
 
   it('books an alternative with its own new key', async () => {

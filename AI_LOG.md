@@ -206,3 +206,21 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
   4. The GenAI section, the README narrative and the video script are DRAFTS written from this log and the commit history; each carries a comment asking the owner to put it in their own words.
 - **My decision:** TBD
 - **Verified by:** typecheck, ESLint, Prettier, contract lint and the production build all clean; `npm audit` for production dependencies reports 0 vulnerabilities; `npm test` 439 passing (197 unit); every number quoted in the README was re-measured.
+
+### 2026-11-04: The booking UI (specs/002-booking-ui, U01-U10)
+
+- **Phase:** implementation (second layer, requested by the owner: "just simple")
+- **Asked:** a simple frontend; backend first was done, so now the UI
+- **AI produced:** a short spec and task list, then a Vite and React app: DST-aware time formatting, a typed API client, a state-light `App`, 61 tests (18 time, 12 client, 31 UI against a fake backend) and a production build of about 73 KB gzipped.
+- **Decisions the AI made and flagged for the owner:** (1) customers and vehicles come from a labelled SAMPLE demo picker, because the API has no customer-listing endpoint (deliberate: personal data, no authentication); (2) the booking list is session-only, because the API has no list endpoint; (3) the dev server proxies `/api`, so the backend gained no CORS configuration.
+- **Problem / gap (the real run found what 58 tests had not):**
+  1. **The time list vanished and reappeared on every refresh** (measured: 0 buttons visible during a refresh). Fixed with "keep the old times while updating", plus a guard test that the old times must NOT linger when the date, dealership or service changes (they would be for the wrong thing).
+  2. **After a 409 the confirmation stayed open** with a Book button that could only fail again. It now closes and offers the alternatives; for a network error it stays open on purpose, because retrying with the same key is safe.
+  3. **Phone width truncated the dropdowns** ("SAMPLE Dealershi..."); filters now stack.
+  4. **A favicon 404** logged a console error on every load.
+  5. **Building the UI broke root linting**: ESLint's ignore pattern `dist/` only matched the repository root, so the built bundle was linted (1,117 errors). Found only because the build was run; fixed with `**/dist/`.
+  6. A hypothesis was tested instead of assumed: two `ERR_ABORTED` console entries looked like a bug. They were React's dev-mode double mount; the production build, run through the same browser session, had none.
+  7. Smaller slips: a test helper typed its mocks wrongly (the spread widened them), an abort test used `instanceof Error` which fails for jsdom's `DOMException` (the client now matches the abort by name, which also works across JavaScript realms), and one scripted edit did not apply because Prettier had re-wrapped the line; the real text was read first.
+- **My decision:** TBD
+- **Open decisions for the owner:** (a) keep the SAMPLE demo customer picker; (b) keep the session-only booking list; (c) the UI is not part of the backend's automated end-to-end suite, and the browser session (headless Chrome driven by a script kept outside the repository) was run by hand; is that acceptable, or should a small Playwright test be added?
+- **Verified by:** 61 UI tests red first, then green; 14 deliberate UI bugs (14 caught, one needed its mutation redone because it had not applied, and it fails 26 tests); the whole flow run in a real browser against the real backend, in development and against the production build, at desktop and 390 px phone width, with screenshots in `docs/images/`; root lint, Prettier, typecheck and build clean.

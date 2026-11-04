@@ -10,5 +10,5 @@ Tests first, as for the backend. Everything lives in `frontend/`, self-contained
 - [x] U06 Write failing component tests `frontend/src/App.test.tsx` with a fake backend: load and defaults, availability list in local time, empty state, book, same key on retry after a network failure, 409 with alternatives and booking one, cancel, error messages with request ID, loading and disabled states
 - [x] U07 Implement `App.tsx` and components (picker, slot list, confirm panel, session list, notices) and styles
 - [x] U08 Add accessibility checks to the tests (labels, roles, live region) and fix what they find
-- [ ] U09 Run the UI against the real backend, fix what the hands-on run finds, take a screenshot at desktop and phone width
-- [ ] U10 Document: `frontend/README.md`, root README section, system-design note, AI log entry
+- [x] U09 Run the UI against the real backend, fix what the hands-on run finds, take a screenshot at desktop and phone width
+- [x] U10 Document: `frontend/README.md`, root README section, system-design note, AI log entry
