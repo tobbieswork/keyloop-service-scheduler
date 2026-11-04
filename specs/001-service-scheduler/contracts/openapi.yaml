@@ -7,9 +7,11 @@ info:
     No authentication in v1 (documented out of scope). All data in examples is sample data.
 servers:
   - url: http://localhost:3000
+security: []   # No authentication in v1 (out of scope, see spec Assumptions)
 paths:
   /availability:
     get:
+      operationId: getAvailability
       summary: List bookable start times for a service type on a date
       parameters:
         - { name: dealershipId, in: query, required: true, schema: { type: string, format: uuid } }
@@ -31,6 +33,7 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
   /appointments:
     post:
+      operationId: createAppointment
       summary: Book an appointment (system assigns bay and technician)
       parameters:
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
@@ -59,6 +62,7 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
   /appointments/{id}:
     get:
+      operationId: getAppointment
       summary: Retrieve an appointment
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -71,6 +75,7 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
   /appointments/{id}/cancel:
     post:
+      operationId: cancelAppointment
       summary: Cancel an appointment (idempotent; the record is kept)
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -83,6 +88,7 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
   /bays/{id}/unavailability:
     post:
+      operationId: createBayUnavailability
       summary: Mark a bay unavailable for a time range
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -102,6 +108,7 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
   /technicians/{id}/unavailability:
     post:
+      operationId: createTechnicianUnavailability
       summary: Mark a technician unavailable for a time range
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -121,6 +128,7 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
   /dealerships:
     get:
+      operationId: listDealerships
       summary: List dealerships (reference data for clients)
       responses:
         '200':
@@ -132,6 +140,7 @@ paths:
                 items: { $ref: '#/components/schemas/Dealership' }
   /service-types:
     get:
+      operationId: listServiceTypes
       summary: List service types (reference data for clients)
       responses:
         '200':
@@ -143,17 +152,20 @@ paths:
                 items: { $ref: '#/components/schemas/ServiceType' }
   /health:
     get:
+      operationId: getHealth
       summary: Liveness
       responses:
         '200': { description: Process is up }
   /ready:
     get:
+      operationId: getReadiness
       summary: Readiness (database reachable)
       responses:
         '200': { description: Ready }
         '503': { description: Database unreachable }
   /metrics:
     get:
+      operationId: getMetrics
       summary: Prometheus metrics
       responses:
         '200': { description: Text exposition format }
