@@ -56,12 +56,12 @@
 - [x] T024 [P] [US1] Write failing integration tests `tests/integration/booking.test.ts`: happy path links customer, vehicle, technician and bay; no free bay gives 409; no qualified technician gives 409; skill mismatch; back-to-back accepted; outside hours; start in the past; unknown references give 404; vehicle not owned by the customer gives 422; a technician or bay belonging to a different dealership is never assigned; malformed input (bad UUID, bad date, missing `Idempotency-Key`, missing field) gives 400 `VALIDATION_ERROR`; `GET /appointments/{id}` returns the stored appointment with customer, vehicle, technician and bay; nothing is stored on failure
 - [x] T025 [P] [US1] Write failing idempotency tests `tests/integration/idempotency.test.ts`: same key and body returns the original with `Idempotent-Replayed`; same key and different body gives 422; a 409 stores nothing so a retry is re-evaluated; replaying a key after the appointment was cancelled returns 200 with the cancelled record
 - [x] T026 [P] [US1] Write failing contract test `tests/contract/appointments.contract.test.ts` for `POST /appointments` (201, 200 replay, 400, 404, 409, 422) and `GET /appointments/{id}` (200, 404)
-- [ ] T027 [US1] Implement `src/domain/occupied-period.ts` and `src/domain/resource-selection.ts`
-- [ ] T028 [US1] Implement repositories `src/db/repositories/appointments.ts`, `resources.ts`, `reference.ts`
-- [ ] T029 [US1] Implement `src/services/booking.ts`: one transaction, row locks on the chosen bay and technician in fixed order (bay then technician by ID), insert, idempotency handling via the unique key and request hash
-- [ ] T030 [US1] Implement `POST /appointments` and `GET /appointments/{id}` in `src/api/routes/appointments.ts` with Zod schemas, required `Idempotency-Key` header and error mapping
-- [ ] T031 [US1] Add booking metrics (outcome counter by result, duration histogram) and a trace span around the booking transaction in `src/services/booking.ts`
-- [ ] T032 [US1] Break-the-logic check: temporarily remove the overlap check and, separately, the exclusion constraint; confirm the tests fail each time (at this stage the constraint removal is caught by the schema test; it is re-checked through the API in T044); restore and record the result in `AI_LOG.md`
+- [x] T027 [US1] Implement `src/domain/occupied-period.ts` and `src/domain/resource-selection.ts`
+- [x] T028 [US1] Implement repositories `src/db/repositories/appointments.ts`, `resources.ts`, `reference.ts`
+- [x] T029 [US1] Implement `src/services/booking.ts`: one transaction, row locks on the chosen bay and technician in fixed order (bay then technician by ID), insert, idempotency handling via the unique key and request hash
+- [x] T030 [US1] Implement `POST /appointments` and `GET /appointments/{id}` in `src/api/routes/appointments.ts` with Zod schemas, required `Idempotency-Key` header and error mapping
+- [x] T031 [US1] Add booking metrics (outcome counter by result, duration histogram) and a trace span around the booking transaction in `src/services/booking.ts`
+- [x] T032 [US1] Break-the-logic check: temporarily remove the overlap check and, separately, the exclusion constraint; confirm the tests fail each time (at this stage the constraint removal is caught by the schema test; it is re-checked through the API in T044); restore and record the result in `AI_LOG.md`
 
 **Checkpoint**: User Story 1 passes on its own. This is the MVP; commit and push.
 

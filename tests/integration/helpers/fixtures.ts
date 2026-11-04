@@ -18,6 +18,12 @@ export interface WorldOptions {
   technicians?: number;
   /** Technicians at the same dealership who do NOT hold the required skill. */
   unqualifiedTechnicians?: number;
+  /**
+   * Add this dealership to an existing world: it shares that world's skill, service type,
+   * customer and vehicle, so its technicians are genuinely qualified for the same service.
+   * Used to prove one dealership's resources are never assigned to another's bookings.
+   */
+  sharedWith?: World;
   /** Add Monday-Friday 08:00-17:00 working hours (needed for booking tests). */
   withHours?: boolean;
   durationMinutes?: number;
@@ -36,39 +42,48 @@ export async function createWorld(db: Db, options: WorldOptions = {}): Promise<W
     .returning('id')
     .executeTakeFirstOrThrow();
 
-  const skill = await db
-    .insertInto('skill')
-    .values({ name: `SAMPLE brakes ${Math.random().toString(36).slice(2, 8)}` })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+  const shared = options.sharedWith;
+  const skill = shared
+    ? { id: shared.skillId }
+    : await db
+        .insertInto('skill')
+        .values({ name: `SAMPLE brakes ${Math.random().toString(36).slice(2, 8)}` })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-  const serviceType = await db
-    .insertInto('service_type')
-    .values({
-      name: 'SAMPLE brake service',
-      duration_minutes: durationMinutes,
-      buffer_minutes: bufferMinutes,
-      required_skill_id: skill.id,
-    })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+  const serviceType = shared
+    ? { id: shared.serviceTypeId }
+    : await db
+        .insertInto('service_type')
+        .values({
+          name: 'SAMPLE brake service',
+          duration_minutes: durationMinutes,
+          buffer_minutes: bufferMinutes,
+          required_skill_id: skill.id,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-  const customer = await db
-    .insertInto('customer')
-    .values({ name: 'SAMPLE Customer', contact: 'sample@example.invalid' })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+  const customer = shared
+    ? { id: shared.customerId }
+    : await db
+        .insertInto('customer')
+        .values({ name: 'SAMPLE Customer', contact: 'sample@example.invalid' })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-  const vehicle = await db
-    .insertInto('vehicle')
-    .values({
-      customer_id: customer.id,
-      vin: `SAMPLEVIN${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-      make: 'SAMPLE',
-      model: 'Model',
-    })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+  const vehicle = shared
+    ? { id: shared.vehicleId }
+    : await db
+        .insertInto('vehicle')
+        .values({
+          customer_id: customer.id,
+          vin: `SAMPLEVIN${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+          make: 'SAMPLE',
+          model: 'Model',
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
   const bayIds: string[] = [];
   for (let i = 1; i <= bays; i++) {

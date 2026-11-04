@@ -128,6 +128,28 @@ describe('POST /appointments: capacity (FR-003, FR-004, FR-008)', () => {
     expect(res.statusCode).toBe(409);
   });
 
+  it('never gives a booking a bay from another dealership, even when technicians are plentiful', async () => {
+    // Dealership A has 1 bay and 3 technicians. Dealership B has 5 bays. After A's only bay is
+    // taken, a second booking must fail: B's free bays are not A's to use.
+    const a = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 3 });
+    await createWorld(testDb.db, { withHours: true, bays: 5, technicians: 0, sharedWith: a });
+    expect((await api.book(bookingBody(a, monday('09:00')))).statusCode).toBe(201);
+    expect((await api.book(bookingBody(a, monday('09:00')))).statusCode).toBe(409);
+  });
+
+  it('never gives a booking a technician from another dealership, even when they hold the same skill', async () => {
+    const a = await createWorld(testDb.db, { withHours: true, bays: 3, technicians: 1 });
+    await createWorld(testDb.db, { withHours: true, bays: 0, technicians: 5, sharedWith: a });
+    expect((await api.book(bookingBody(a, monday('09:00')))).statusCode).toBe(201);
+    expect((await api.book(bookingBody(a, monday('09:00')))).statusCode).toBe(409);
+  });
+
+  it('accepts a booking that ends exactly when an existing one starts (back-to-back, earlier slot booked second)', async () => {
+    const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
+    expect((await api.book(bookingBody(world, monday('10:00')))).statusCode).toBe(201);
+    expect((await api.book(bookingBody(world, monday('09:00')))).statusCode).toBe(201);
+  });
+
   it('accepts back-to-back appointments: the next starts when the previous ends (FR-005)', async () => {
     const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
     expect((await api.book(bookingBody(world, monday('09:00')))).statusCode).toBe(201);
