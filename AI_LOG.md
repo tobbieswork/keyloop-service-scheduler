@@ -6,6 +6,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 ## Template
 
 ### YYYY-MM-DD: <short title>
+
 - **Phase:** design | tests | implementation | review | docs
 - **Asked:** what I asked the AI to do
 - **AI produced:** summary of the output
@@ -16,6 +17,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 ## Entries
 
 ### 2026-11-04: Repo setup and first spec
+
 - **Phase:** design
 - **Asked:** set up repo, Spec Kit, constitution draft, AI log template; then start the spec
 - **AI produced:** repo scaffold, 7-principle constitution draft, and specs/001-service-scheduler/spec.md written from the PDF's Scenario A
@@ -24,6 +26,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Verified by:** read the files myself; the spec was then tightened through a 5-question clarify session, with the answers recorded in its Clarifications section
 
 ### 2026-11-04: Clarify session
+
 - **Phase:** design
 - **Asked:** run /speckit-clarify on the draft spec
 - **AI produced:** targeted questions, each with a recommended option
@@ -32,6 +35,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Verified by:** spec updated (FR-015, new entity); reviewed in git diff
 
 ### 2026-11-04: Technical plan
+
 - **Phase:** design
 - **Asked:** run /speckit-plan using my defaults: Fastify, Kysely + SQL migrations, transaction + Postgres exclusion constraint with bounded retry
 - **AI produced:** plan.md, research.md (11 decisions with alternatives), data-model.md, contracts/openapi.yaml, quickstart.md
@@ -40,6 +44,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Verified by:** see the next entry (SQL, concurrency and OpenAPI checks were run afterwards)
 
 ### 2026-11-04: Verify the plan's SQL and contract
+
 - **Phase:** design / verification
 - **Asked:** re-check the items marked "not yet verified": SQL in data-model.md, Docker daemon, OpenAPI contract
 - **AI produced:** a throwaway Postgres 16 container, 10 SQL scenario checks, a 20-way parallel insert race, and a Redocly lint of the contract
@@ -49,6 +54,7 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Lesson for the narrative:** a green or red result is only as trustworthy as the test harness. Check that the thing under test is the real artifact
 
 ### 2026-11-04: Task breakdown
+
 - **Phase:** design
 - **Asked:** run /speckit-tasks with tests before implementation
 - **AI produced:** tasks.md with 61 tasks in 8 phases; format-checked with a regex (all 61 match)
@@ -57,9 +63,19 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Verified by:** format regex re-run after retagging (61/61 valid, 0 leftover [FR-015] tags); spec and tasks now trace every story to a phase
 
 ### 2026-11-04: Cross-artifact analysis and fixes
+
 - **Phase:** design / verification
 - **Asked:** run /speckit-analyze (read-only) across spec, plan, tasks, data model, contract and constitution
 - **AI produced:** 14 findings (0 critical, 1 high, 8 medium, 5 low) and 100% requirement coverage, with 4 requirements only partly covered
 - **Problem / gap:** HIGH: SC-003 required an alternative "where capacity exists elsewhere" but the planned test returned none when the day was full, so the two contradicted each other. Others: a US2 test depending on US5 code; two tests ordered after their implementation or before their test harness; no HTTP status for validation errors; no tests for malformed input, cross-dealership resources or GET by ID; break-the-logic checks that could only fail "sometimes"; constitution still marked DRAFT
 - **My decision:** Alternatives = up to 5 slots, the requested day first, then the next 7 days. Approved the rest of the fixes. AI chose two details I accepted: 400 for malformed requests vs 422 for business-rule breaks, and "replay after cancel returns the cancelled record"
 - **Verified by:** task format regex (61/61), Phase 2 order re-read, Redocly lint (0 errors, 0 warnings), grep for leftover terms
+
+### 2026-11-04: Phase 1 setup (T001-T005)
+
+- **Phase:** implementation
+- **Asked:** start implementation with Phase 1: skeleton, pinned dependencies, lint/format, Docker Compose, Vitest
+- **AI produced:** package.json and strict tsconfig, 24 exact-pinned dependencies, ESLint/Prettier config, Postgres compose file, Vitest with unit and integration projects
+- **Problem / gap:** the AI looked up current versions first instead of using remembered ones. That found TypeScript 7.0.2 is the latest, but typescript-eslint only supports below 6.1, so TypeScript was pinned to 6.0.3 (the version table would otherwise have installed an unsupported compiler). Also: `test:integration` exits 1 when a project has no tests yet; the AI added a temporary `passWithNoTests` and put its removal into task T010 so a missing test file can never pass silently later
+- **My decision:** TBD
+- **Verified by:** `npm ls` (no peer conflicts), `npm audit` (0 vulnerabilities), typecheck, lint and Prettier clean, a throwaway smoke test, and the compose database actually booted healthy on Postgres 16.15 and was torn down

@@ -1,0 +1,21 @@
+# Local development database. SAMPLE credentials only; never reuse them elsewhere.
+services:
+  db:
+    image: postgres:16
+    container_name: scheduler-db
+    environment:
+      POSTGRES_USER: scheduler
+      POSTGRES_PASSWORD: scheduler_dev_only
+      POSTGRES_DB: scheduler
+    ports:
+      - '5432:5432'
+    volumes:
+      - scheduler-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scheduler -d scheduler']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  scheduler-data:

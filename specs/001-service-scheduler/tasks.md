@@ -15,10 +15,10 @@
 **Purpose**: Project skeleton and tooling
 
 - [x] T001 Create the project skeleton per plan.md: `package.json` (scripts: dev, build, start, migrate, seed, test, test:concurrency, lint, typecheck), `tsconfig.json` (strict), `.nvmrc` (24), `src/` and `tests/` folders
-- [ ] T002 Install pinned dependencies in `package.json`: fastify, zod, fastify-type-provider-zod, @fastify/swagger, kysely, pg, pino, prom-client, @opentelemetry/sdk-node and instrumentations; dev: typescript, tsx, vitest, testcontainers, @testcontainers/postgresql, eslint, prettier, @redocly/cli
-- [ ] T003 [P] Configure ESLint and Prettier in `eslint.config.js` and `.prettierrc`
-- [ ] T004 [P] Add `docker-compose.yml` (Postgres 16 with healthcheck) and `.env.example` (no real secrets)
-- [ ] T005 [P] Configure Vitest in `vitest.config.ts` with separate `unit` and `integration` projects (integration timeout 60s)
+- [x] T002 Install pinned dependencies in `package.json`: fastify, zod, fastify-type-provider-zod, @fastify/swagger, kysely, pg, pino, prom-client, @opentelemetry/sdk-node and instrumentations; dev: typescript, tsx, vitest, testcontainers, @testcontainers/postgresql, eslint, prettier, @redocly/cli
+- [x] T003 [P] Configure ESLint and Prettier in `eslint.config.js` and `.prettierrc`
+- [x] T004 [P] Add `docker-compose.yml` (Postgres 16 with healthcheck) and `.env.example` (no real secrets)
+- [x] T005 [P] Configure Vitest in `vitest.config.ts` with separate `unit` and `integration` projects (integration timeout 60s)
 
 ---
 
@@ -30,7 +30,7 @@
 - [ ] T007 Implement `src/config.ts` with Zod-validated environment config
 - [ ] T008 Add Kysely instance, generated or hand-written table types and a migrate runner in `src/db/index.ts`, `src/db/types.ts`, `src/db/migrate.ts`
 - [ ] T009 Add Testcontainers helper `tests/integration/helpers/db.ts` (start Postgres, run migrations, truncate between tests)
-- [ ] T010 Write failing integration test `tests/integration/schema.constraints.test.ts` using Testcontainers: overlapping bay rejected, overlapping technician rejected, back-to-back allowed, cancelled frees the slot, duplicate idempotency key rejected, empty and inclusive-upper periods rejected (the 10 scenarios already verified by hand against `data-model.md`)
+- [ ] T010 Remove `passWithNoTests` from `vitest.config.ts`, then write failing integration test `tests/integration/schema.constraints.test.ts` using Testcontainers: overlapping bay rejected, overlapping technician rejected, back-to-back allowed, cancelled frees the slot, duplicate idempotency key rejected, empty and inclusive-upper periods rejected (the 10 scenarios already verified by hand against `data-model.md`)
 - [ ] T011 Create migration `src/db/migrations/001_init.ts` with all tables, `btree_gist`, the two exclusion constraints, the period CHECK and the unavailability exclusion constraints exactly as in `data-model.md`
 - [ ] T012 Add SAMPLE seed data in `src/db/seed.ts`: 2 dealerships in different time zones with weekly hours, bays, technicians with skills, service types (some with buffer), customers and vehicles. Every record name is prefixed `SAMPLE`
 - [ ] T013 [P] Write failing unit tests `tests/unit/time-range.test.ts`: half-open overlap, back-to-back is not overlap, containment, empty range
