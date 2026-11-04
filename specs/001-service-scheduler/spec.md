@@ -8,6 +8,16 @@
 
 **Input**: User description: "Build an Appointment Scheduler application to replace manual booking systems. A user requests a service appointment for a specific vehicle, service type and dealership at a desired time. Before confirming, check that both a service bay and a qualified technician are available for the entire service duration. On success, create a persistent appointment record linking customer, vehicle, technician and service bay."
 
+## Clarifications
+
+### Session 2026-11-04
+
+- Q: Should the system choose the bay and technician automatically, or should the requester pick them? → A: System auto-assigns; requester supplies vehicle, service type, dealership and time only.
+- Q: How should the cleanup buffer work? → A: Per service type, added to the service duration (may be 0). Blocked time = duration + buffer.
+- Q: Can a bay or technician be unavailable for set periods, or are all available during opening hours? → A: Per-resource unavailability. Bays and technicians can each be marked unavailable for a time range (maintenance, shift end, leave).
+- Q: How should duplicate or retried booking requests be handled? → A: Idempotency key. Each booking request carries a unique client key; the same key returns the original result and never creates a second appointment.
+- Q: How should the system choose between several eligible technicians or bays? → A: Least-booked that day (fewest appointments on that date), ties broken by lowest ID, so results are deterministic.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Book a service appointment (Priority: P1)
@@ -79,7 +89,7 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 - Appointment that spans the end of one working day into the next.
 - Unknown vehicle, service type or dealership.
 - A technician qualified for the service at a different dealership only.
-- Duplicate submission of the same request (retry by the client).
+- Same idempotency key re-sent after a timeout (must return the original result); same key re-sent with different details (must be rejected).
 - Service duration plus buffer exactly fills a gap between two appointments.
 - A bay that is out of service or a technician who is off shift.
 - Times given in different time zones than the dealership's.
@@ -89,9 +99,9 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 ### Functional Requirements
 
 - **FR-001**: System MUST accept a booking request containing customer, vehicle, service type, dealership and desired start time.
-- **FR-002**: System MUST determine the appointment's full occupied period from the service type's duration plus any configured buffer.
-- **FR-003**: System MUST confirm a booking only if a service bay at that dealership is free for the entire period.
-- **FR-004**: System MUST confirm a booking only if a technician qualified for that service type is free for the entire period.
+- **FR-002**: System MUST determine the appointment's full occupied period as the service type's duration plus that service type's own buffer (which may be zero).
+- **FR-003**: System MUST automatically assign a free service bay at that dealership, and MUST confirm a booking only if one is free for the entire period. The requester does not choose the bay.
+- **FR-004**: System MUST automatically assign a technician qualified for that service type, and MUST confirm a booking only if one is free for the entire period. The requester does not choose the technician.
 - **FR-005**: System MUST treat back-to-back appointments (end equals next start) as non-overlapping.
 - **FR-006**: System MUST persist each confirmed appointment, linking customer, vehicle, technician and service bay.
 - **FR-007**: System MUST guarantee a bay or technician is never double-booked, including under concurrent requests.
@@ -102,6 +112,9 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 - **FR-012**: System MUST validate all input and return consistent, machine-readable errors.
 - **FR-013**: System MUST allow retrieving and cancelling an appointment, retaining cancelled records.
 - **FR-014**: System MUST log each booking outcome with a request identifier, without logging sensitive personal data.
+- **FR-015**: System MUST allow a bay or technician to be marked unavailable for a time range, and MUST NOT assign that resource to any appointment whose occupied period overlaps it.
+- **FR-016**: System MUST require a unique idempotency key on each booking request; repeating a key MUST return the original result and MUST NOT create another appointment.
+- **FR-017**: When several bays or technicians are eligible, System MUST choose the one with the fewest appointments on the requested date, breaking ties by lowest ID.
 
 ### Key Entities
 
@@ -112,6 +125,7 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 - **Service Type**: A kind of service with a duration, a buffer and a required skill.
 - **Vehicle**: Identified by VIN; belongs to a customer.
 - **Customer**: The person the appointment is for.
+- **Unavailability Period**: A time range during which one specific bay or technician cannot be assigned (maintenance, off shift, leave), with a reason.
 - **Appointment**: Confirmed booking linking customer, vehicle, service type, dealership, technician, bay, start and end time, and a status (confirmed or cancelled).
 
 ## Success Criteria *(mandatory)*
@@ -128,10 +142,9 @@ A user retrieves an appointment and can cancel it, which frees the bay and techn
 
 These fill gaps in the brief. All are open to change at the clarify step.
 
-- Duration includes a cleanup buffer that is configurable per service type.
 - A technician qualifies for a service type by holding its required skill.
 - Technicians and bays are tied to one dealership; cross-dealership assignment is out of scope.
-- Each dealership has fixed weekly working hours and one time zone; holidays and shift rosters are out of scope for v1.
+- Each dealership has fixed weekly working hours and one time zone. Dealership holidays are out of scope for v1; individual bay and technician unavailability is in scope (FR-015).
 - Slots start on 15-minute boundaries.
 - Authentication, payments, notifications and customer self-registration are out of scope; customers and vehicles are pre-seeded sample data, clearly marked as sample.
 - One appointment per bay and per technician at a time; no overlapping work.
