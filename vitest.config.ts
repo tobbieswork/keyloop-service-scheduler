@@ -2,9 +2,6 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // TEMPORARY (Phase 1): lets an empty project pass. Remove at T010, when the first
-    // integration test exists, so a deleted or misnamed test file can never pass silently.
-    passWithNoTests: true,
     projects: [
       {
         test: {
