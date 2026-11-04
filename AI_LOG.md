@@ -88,3 +88,12 @@ One entry per meaningful AI interaction. Aim for 8-12 entries, including at leas
 - **Problem / gap:** (1) Kysely 0.29 moved `Migrator` to `kysely/migration`; the compile error pointed straight at it. (2) The linter flagged a rethrown error with no `cause`, which would have hidden the original Postgres error. (3) The AI left a junk destructuring line in the schema test that did not compile, and removed it. (4) The migration added constraints (service duration > 0, weekday range, close after open, unavailability period checks) that were not in data-model.md; the doc was updated to match
 - **My decision:** TBD
 - **Verified by:** all tests were seen red first (config: module missing; schema: `relation "dealership" does not exist`), then green. Break-the-logic: removing the technician constraint, ignoring status in the bay constraint, and accepting inclusive bounds each failed exactly the intended tests (1, 2 and 1) and passed again once restored. A deliberate secret leak into the config error was caught by the no-leak test
+
+### 2026-11-04: Seed data and time logic (T012-T016)
+
+- **Phase:** implementation
+- **Asked:** continue Phase 2: SAMPLE seed data, then the pure domain logic for time ranges and working hours, tests first
+- **AI produced:** re-runnable seed with fixed IDs; half-open `TimeRange`; DST-aware local-time conversion built on `Intl` (Node 24 has no stable Temporal); 69 unit tests. Expected values were derived from calendar facts (London springs forward 2030-03-31, New York 2030-03-10), not from running the code
+- **Problem / gap:** the seed's command-line entry point was only trusted after running `npm run migrate` and `npm run seed` for real against the compose database. Break-the-logic: closing the range (touching counts as overlap), ignoring DST, and choosing the later of two ambiguous times each failed 2, 10 and 1 tests. A fourth break (measuring 15-minute alignment in UTC instead of local time) SURVIVED. Investigation showed it is an equivalent mutant: every real zone offset is a multiple of 15 minutes, so no test can tell the two apart. The test title had overclaimed, so it was retitled honestly rather than bent to fail
+- **My decision:** TBD
+- **Verified by:** tests seen red first (modules missing), then green; four deliberate breaks, three caught, one analysed as equivalent; seed and migrate commands run for real, including exit code 1 on bad config

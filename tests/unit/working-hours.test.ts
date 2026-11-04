@@ -213,11 +213,20 @@ describe('checkWorkingHours', () => {
       }
     });
 
-    it('measures alignment on the wall clock, so half-hour zones still work', () => {
+    // Note: every real zone offset is a multiple of 15 minutes, so alignment in UTC and in local
+    // time always agree today. The code still measures the local clock because that is what the
+    // spec says; this test checks that unusual offsets work, not that the two methods differ.
+    it('works in zones with half-hour and 45-minute offsets', () => {
       // India is UTC+5:30. 02:30Z is 08:00 local: aligned. 02:40Z is 08:10 local: not.
       const india = everyDay('08:00', '18:00');
       expect(check('2030-03-04T02:30:00Z', 60, 'Asia/Kolkata', india)).toEqual({ ok: true });
       expect(check('2030-03-04T02:40:00Z', 60, 'Asia/Kolkata', india)).toEqual({
+        ok: false,
+        reason: 'NOT_ALIGNED',
+      });
+      // Nepal is UTC+5:45. 02:15Z is 08:00 local: aligned. 02:20Z is 08:05 local: not.
+      expect(check('2030-03-04T02:15:00Z', 60, 'Asia/Kathmandu', india)).toEqual({ ok: true });
+      expect(check('2030-03-04T02:20:00Z', 60, 'Asia/Kathmandu', india)).toEqual({
         ok: false,
         reason: 'NOT_ALIGNED',
       });
