@@ -36,9 +36,14 @@ and customer search in the UI (the API has no such endpoint, on purpose).
 
 ## 2. Architecture
 
+![Architecture: client, API layers, PostgreSQL and observability outputs](images/architecture.png)
+
+<details>
+<summary>Diagram source (Mermaid)</summary>
+
 ```mermaid
 flowchart LR
-  client["Client: cURL, test harness,<br/>or a thin UI later"]
+  client["Client: cURL, test harness,<br/>or the booking UI"]
   subgraph api["Scheduler API: Node.js 24, Fastify, TypeScript"]
     routes["Routes<br/>Zod validation, error mapping"]
     services["Services<br/>booking, availability,<br/>cancel, unavailability"]
@@ -58,6 +63,8 @@ flowchart LR
   obs -.-> otlp
 ```
 
+</details>
+
 ### Component roles
 
 | Component                                | Role                                                                                                                      | Why it is separate                                            |
@@ -76,6 +83,11 @@ so tests build many independent instances and inject a fixed clock.
 
 ### Booking (the core path)
 
+![Booking sequence: idempotency check, validation, locked insert with retry, response](images/booking-flow.png)
+
+<details>
+<summary>Diagram source (Mermaid)</summary>
+
 ```mermaid
 sequenceDiagram
   participant C as Client
@@ -86,7 +98,7 @@ sequenceDiagram
   D-->>A: No
   A->>D: Load dealership, service type, customer, vehicle
   A->>A: In the future? Inside working hours? (pure rules)
-  loop until booked, no capacity, or the time budget is spent
+  loop retry until booked, no capacity, or time is spent
     A->>D: BEGIN, list free bays and qualified technicians
     A->>D: Lock best unlocked bay and technician (SKIP LOCKED)
     A->>D: Re-check both are still free (appointments and blocks)
@@ -95,6 +107,8 @@ sequenceDiagram
   end
   A-->>C: 201 appointment, or 409 with alternatives, or 422
 ```
+
+</details>
 
 Validation errors are cheap and answered first (400, 404, 422). Capacity is checked last, inside
 one transaction that either stores the whole appointment or nothing.
@@ -114,6 +128,11 @@ one transaction that either stores the whole appointment or nothing.
 
 ## 4. Data model
 
+![Data model: entities and relationships](images/data-model.png)
+
+<details>
+<summary>Diagram source (Mermaid)</summary>
+
 ```mermaid
 erDiagram
   DEALERSHIP ||--o{ DEALERSHIP_HOURS : opens
@@ -131,6 +150,8 @@ erDiagram
   APPOINTMENT }o--|| SERVICE_BAY : uses
   APPOINTMENT }o--|| TECHNICIAN : assigned_to
 ```
+
+</details>
 
 Full column list and the SQL: [`data-model.md`](../specs/001-service-scheduler/data-model.md).
 
