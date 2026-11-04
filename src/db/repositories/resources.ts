@@ -28,7 +28,9 @@ export async function freeBays(
      WHERE b.dealership_id = ${dealershipId}
        AND NOT EXISTS (SELECT 1 FROM appointment a
                         WHERE a.bay_id = b.id AND a.status = 'confirmed'
-                          AND a.occupied_period && ${period(occupied)})`.execute(db);
+                          AND a.occupied_period && ${period(occupied)})
+       AND NOT EXISTS (SELECT 1 FROM bay_unavailability u
+                        WHERE u.bay_id = b.id AND u.period && ${period(occupied)})`.execute(db);
   return rows.map((r) => ({ id: r.id, bookedThatDay: r.booked }));
 }
 
@@ -51,7 +53,11 @@ export async function freeTechnicians(
      WHERE t.dealership_id = ${dealershipId}
        AND NOT EXISTS (SELECT 1 FROM appointment a
                         WHERE a.technician_id = t.id AND a.status = 'confirmed'
-                          AND a.occupied_period && ${period(occupied)})`.execute(db);
+                          AND a.occupied_period && ${period(occupied)})
+       AND NOT EXISTS (SELECT 1 FROM technician_unavailability u
+                        WHERE u.technician_id = t.id AND u.period && ${period(occupied)})`.execute(
+    db,
+  );
   return rows.map((r) => ({ id: r.id, bookedThatDay: r.booked, skillIds: r.skill_ids }));
 }
 
@@ -76,8 +82,9 @@ export async function tryLockTechnician(db: Db, technicianId: string): Promise<b
 }
 
 /**
- * Re-check, after the locks are held, that the chosen bay and technician are still free. The
- * earlier lists were read before the locks, so another booking may have committed in between.
+ * Re-check, after the locks are held, that the chosen bay and technician are still free: no
+ * confirmed appointment and no block overlaps. The earlier lists were read before the locks, so
+ * another booking or a new block may have committed in between.
  */
 export async function stillFree(
   db: Db,
@@ -86,9 +93,15 @@ export async function stillFree(
   occupied: TimeRange,
 ): Promise<boolean> {
   const { rows } = await sql<{ busy: boolean }>`
-    SELECT EXISTS (SELECT 1 FROM appointment a
-                    WHERE a.status = 'confirmed'
-                      AND (a.bay_id = ${bayId} OR a.technician_id = ${technicianId})
-                      AND a.occupied_period && ${period(occupied)}) AS busy`.execute(db);
+    SELECT (EXISTS (SELECT 1 FROM appointment a
+                     WHERE a.status = 'confirmed'
+                       AND (a.bay_id = ${bayId} OR a.technician_id = ${technicianId})
+                       AND a.occupied_period && ${period(occupied)})
+            OR EXISTS (SELECT 1 FROM bay_unavailability u
+                        WHERE u.bay_id = ${bayId} AND u.period && ${period(occupied)})
+            OR EXISTS (SELECT 1 FROM technician_unavailability u
+                        WHERE u.technician_id = ${technicianId} AND u.period && ${period(occupied)})) AS busy`.execute(
+    db,
+  );
   return rows[0]?.busy === false;
 }

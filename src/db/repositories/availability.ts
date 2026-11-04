@@ -37,8 +37,28 @@ export async function loadDayResources(
     db,
   );
 
-  const busyBy = (key: 'bay_id' | 'technician_id', id: string): TimeRange[] =>
-    rows.filter((r) => r[key] === id).map((r) => range(r.start, r.end));
+  // Blocks (bay or technician unavailable) make a resource busy exactly like an appointment does.
+  const blocks = async (
+    table: 'bay_unavailability' | 'technician_unavailability',
+    column: string,
+  ) =>
+    (
+      await sql<{ resource_id: string; start: Date; end: Date }>`
+        SELECT ${sql.ref(column)} AS resource_id, lower(period) AS start, upper(period) AS "end"
+          FROM ${sql.table(table)}
+         WHERE period && tstzrange(${day.start}::timestamptz, ${day.end}::timestamptz, '[)')`.execute(
+        db,
+      )
+    ).rows;
+  const bayBlocks = await blocks('bay_unavailability', 'bay_id');
+  const technicianBlocks = await blocks('technician_unavailability', 'technician_id');
+
+  const busyBy = (key: 'bay_id' | 'technician_id', id: string): TimeRange[] => [
+    ...rows.filter((r) => r[key] === id).map((r) => range(r.start, r.end)),
+    ...(key === 'bay_id' ? bayBlocks : technicianBlocks)
+      .filter((b) => b.resource_id === id)
+      .map((b) => range(b.start, b.end)),
+  ];
 
   return {
     bays: bays.map((b) => ({ id: b.id, busy: busyBy('bay_id', b.id) })),

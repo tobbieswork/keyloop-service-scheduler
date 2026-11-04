@@ -15,9 +15,11 @@ import { registerObservability } from '../observability/plugin.js';
 import { createAvailabilityService } from '../services/availability.js';
 import { createBookingService } from '../services/booking.js';
 import { createCancelService } from '../services/cancel.js';
+import { createUnavailabilityService } from '../services/unavailability.js';
 import { registerErrorHandling } from './errors.js';
 import { registerAppointmentRoutes } from './routes/appointments.js';
 import { registerAvailabilityRoutes } from './routes/availability.js';
+import { registerUnavailabilityRoutes } from './routes/unavailability.js';
 
 export interface AppDeps {
   config: Config;
@@ -96,6 +98,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const booking = createBookingService({ db, metrics, clock, availability });
   registerAppointmentRoutes(app, { db, booking, cancel: createCancelService({ db, clock }) });
   registerAvailabilityRoutes(app, { db, availability });
+  registerUnavailabilityRoutes(app, { unavailability: createUnavailabilityService({ db }) });
 
   return app;
 }

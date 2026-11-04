@@ -65,7 +65,7 @@ function services(testHooks: BookingTestHooks) {
     random: () => 0,
     testHooks,
   });
-  const unavailability = createUnavailabilityService({ db: testDb.db, clock });
+  const unavailability = createUnavailabilityService({ db: testDb.db });
   return { booking, unavailability };
 }
 
@@ -95,14 +95,12 @@ describe('booking and blocking the same resource at the same moment (SC-006, FR-
     async (kind) => {
       const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
       const ids = { bay: world.bayIds[0]!, technician: world.technicianIds[0]! };
-      let unavailabilityService!: ReturnType<typeof createUnavailabilityService>;
       const s = services({
         afterCandidatesRead: async ({ attempt }) => {
           if (attempt === 1)
-            await unavailabilityService.block(kind, ids[kind], range('09:00', '12:00'), log);
+            await s.unavailability.block(kind, ids[kind], range('09:00', '12:00'), log);
         },
       });
-      unavailabilityService = s.unavailability;
 
       const error = await s.booking.book(request(world, newKey()), log).catch((e: unknown) => e);
 
@@ -121,12 +119,11 @@ describe('booking and blocking the same resource at the same moment (SC-006, FR-
       const world = await createWorld(testDb.db, { withHours: true, bays: 1, technicians: 1 });
       const ids = { bay: world.bayIds[0]!, technician: world.technicianIds[0]! };
       let blockResult: Promise<unknown> | undefined;
-      let unavailabilityService!: ReturnType<typeof createUnavailabilityService>;
       const s = services({
         beforeInsert: async () => {
           // The booking holds its locks right now. Start the block WITHOUT awaiting it (it must wait),
           // then wait until Postgres confirms it is genuinely blocked on a lock.
-          blockResult = unavailabilityService
+          blockResult = s.unavailability
             .block(kind, ids[kind], range('09:00', '12:00'), log)
             .catch((e: unknown) => e);
           for (let i = 0; i < 100; i++) {
@@ -141,7 +138,6 @@ describe('booking and blocking the same resource at the same moment (SC-006, FR-
           throw new Error('the block never started waiting on the booking lock');
         },
       });
-      unavailabilityService = s.unavailability;
 
       const outcome = await s.booking.book(request(world, newKey()), log);
       const blockError = await blockResult;
